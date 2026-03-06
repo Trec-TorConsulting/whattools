@@ -1,0 +1,86 @@
+# ==============================
+# Python
+# ==============================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+*.whl
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# uv
+.uv/
+
+# ==============================
+# Testing / Coverage
+# ==============================
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# ==============================
+# IDE / Editor
+# ==============================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ==============================
+# Docker
+# ==============================
+docker-compose.override.yml
+
+# ==============================
+# Environment / Secrets
+# ==============================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ==============================
+# Kubernetes Secrets (never commit real secrets)
+# ==============================
+k8s/**/secrets.yaml
+k8s/**/secret.yaml
+
+# ==============================
+# Logs
+# ==============================
+*.log
+logs/
+
+# ==============================
+# Build artifacts
+# ==============================
+*.tar.gz
+*.zip
+
+# ==============================
+# Ruff / Linting cache
+# ==============================
+.ruff_cache/
+
+# ==============================
+# Bandit
+# ==============================
+.bandit
