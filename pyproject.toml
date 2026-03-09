@@ -145,6 +145,7 @@ omit = [
     "services/inventory/app.py",
     "services/sales/app.py",
     "services/analytics/app.py",
+    "services/shipping/app.py",
 ]
 
 [tool.coverage.report]

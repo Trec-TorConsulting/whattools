@@ -37,7 +37,9 @@ curl http://localhost:5000/api/v1/health
 | Gateway    | http://localhost:5000     |
 | Auth       | http://localhost:5001     |
 | Inventory  | http://localhost:5002     || Sales      | http://localhost:5003     |
-| Analytics  | http://localhost:5004     || PostgreSQL | localhost:5432            |
+| Analytics  | http://localhost:5004     |
+| Shipping   | http://localhost:5005     |
+| PostgreSQL | localhost:5432            |
 | Redis      | localhost:6379            |
 
 ### Development Commands
@@ -71,6 +73,7 @@ docker build -t whattools/auth:latest -f services/auth/Dockerfile .
 docker build -t whattools/inventory:latest -f services/inventory/Dockerfile .
 docker build -t whattools/sales:latest -f services/sales/Dockerfile .
 docker build -t whattools/analytics:latest -f services/analytics/Dockerfile .
+docker build -t whattools/shipping:latest -f services/shipping/Dockerfile .
 docker build -t whattools/gateway:latest -f services/gateway/Dockerfile .
 
 # Tag and push to your registry
@@ -120,6 +123,7 @@ kubectl apply -f k8s/prod/auth.yaml
 kubectl apply -f k8s/prod/inventory.yaml
 kubectl apply -f k8s/prod/sales.yaml
 kubectl apply -f k8s/prod/analytics.yaml
+kubectl apply -f k8s/prod/shipping.yaml
 kubectl apply -f k8s/prod/gateway.yaml
 kubectl apply -f k8s/prod/ingress.yaml
 ```
@@ -168,6 +172,7 @@ kubectl logs -n whattools -l app=auth -f
 kubectl logs -n whattools -l app=inventory -f
 kubectl logs -n whattools -l app=sales -f
 kubectl logs -n whattools -l app=analytics -f
+kubectl logs -n whattools -l app=shipping -f
 kubectl logs -n whattools -l app=gateway -f
 ```
 

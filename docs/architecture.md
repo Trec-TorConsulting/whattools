@@ -20,17 +20,18 @@ WhatTools is a B2B SaaS platform providing professional-grade tools for [Whatnot
                     │  - Structured access logging     │
                     │  - CORS enforcement              │
                     │  - Aggregated health checks      │
-                    └──┬──────┬──────┬──────┬─────────┘
-                       │      │      │      │
-          ┌────────────▼┐ ┌──▼──────────┐ ┌▼────────────┐ ┌──────────────┐
-          │ Auth (:5001) │ │ Inv (:5002) │ │Sales (:5003)│ │Anlys (:5004) │
-          │ - Register   │ │ - Item CRUD │ │- Show CRUD  │ │- Rev summary │
-          │ - Login      │ │ - Categories│ │- Order CRUD │ │- Category    │
-          │ - JWT tokens │ │ - CSV import│ │- Status     │ │  performance │
-          │ - Team mgmt  │ │ - Tier      │ │  transitions│ │- Show stats  │
-          │ - Password   │ │   enforce   │ │- Profit     │ │- Trends      │
-          │   reset      │ │ - Soft del  │ │  tracking   │ │- Top items   │
-          └──────┬───────┘ └──────┬──────┘ └──────┬─────┘ └──────┬───────┘
+                    └──┬──────┬──────┬──────┬──────┬────────┘
+                       │      │      │      │      │
+          ┌────────────▼┐ ┌──▼──────────┐ ┌▼────────────┐ ┌──────────────┐ ┌──────────────┐
+          │ Auth (:5001) │ │ Inv (:5002) │ │Sales (:5003)│ │Anlys (:5004) │ │Ship (:5005)  │
+          │ - Register   │ │ - Item CRUD │ │- Show CRUD  │ │- Rev summary │ │- Shipment    │
+          │ - Login      │ │ - Categories│ │- Order CRUD │ │- Category    │ │  CRUD        │
+          │ - JWT tokens │ │ - CSV import│ │- Status     │ │  performance │ │- Label gen   │
+          │ - Team mgmt  │ │ - Tier      │ │  transitions│ │- Show stats  │ │- Bulk create │
+          │ - Password   │ │   enforce   │ │- Profit     │ │- Trends      │ │- Packing     │
+          │   reset      │ │ - Soft del  │ │  tracking   │ │- Top items   │ │  lists       │
+          └──────┬───────┘ └──────┬──────┘ └──────┬─────┘ └──────┬───────┘ └──────┬───────┘
+                 │                │               │              │                │
                  │                │               │              │
         ┌────────▼────────────────▼───────────────▼──────────────▼─────┐
         │                     PostgreSQL (:5432)                       │
@@ -47,7 +48,7 @@ WhatTools is a B2B SaaS platform providing professional-grade tools for [Whatnot
 
 ### API Gateway (port 5000)
 Lightweight Flask proxy that routes all `/api/v1/*` requests to the appropriate backend service via httpx. Provides cross-cutting concerns:
-- **Request routing**: Path-based resolution to auth, inventory, sales, or analytics services
+- **Request routing**: Path-based resolution to auth, inventory, sales, analytics, or shipping services
 - **Rate limiting**: 60 requests/minute per IP (Flask-Limiter + Redis)
 - **Request ID**: Generates/preserves `X-Request-ID` UUID on every request
 - **Logging**: Structured JSON access logs (method, path, status, duration, client IP)
@@ -80,6 +81,17 @@ Manages live shows and order tracking with profit calculation:
 - Soft delete with restore for orders
 - Redis event publishing for inter-service communication
 
+### Shipping Service (port 5005)
+Manages shipment fulfillment with pluggable carrier providers:
+- Full CRUD for shipments linked to orders (one shipment per order)
+- Status lifecycle management (pending → label_created → shipped → delivered/cancelled)
+- Label generation via pluggable provider interface (ManualProvider at MVP)
+- Bulk shipment creation for all pending orders in a show
+- Packing list generation grouped by buyer with addresses and item details
+- Overdue shipment detection (past ship-by date)
+- Soft delete with restore and 30-day purge
+- Order status sync on ship/deliver via cross-service events
+
 ### Analytics Service (port 5004)
 Read-only aggregation service for business intelligence:
 - Revenue summary (revenue, COGS, fees, shipping, gross/net profit, margin %, AOV)
@@ -106,6 +118,7 @@ All models extend `BaseModel` with UUID primary keys, `created_at`/`updated_at` 
 | `csv_import_jobs` | Inventory | CSV import job tracking |
 | `shows` | Sales | Live selling sessions |
 | `orders` | Sales | Item sales with profit tracking |
+| `shipments` | Shipping | Order shipments with tracking |
 | `audit_logs` | Shared | Immutable mutation audit trail |
 
 ## Technology Stack

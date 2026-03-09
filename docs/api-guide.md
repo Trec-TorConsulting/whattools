@@ -451,6 +451,141 @@ Query parameters:
 
 ---
 
+## Shipping
+
+All shipping endpoints require authentication.
+
+### Create Shipment
+
+```http
+POST /api/v1/shipments
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "order_id": "uuid",
+  "carrier": "USPS",
+  "weight_oz": 12.5,
+  "buyer_name": "John Buyer",
+  "address_line1": "123 Main St",
+  "city": "Portland",
+  "state": "OR",
+  "zip_code": "97201",
+  "country": "US",
+  "ship_by_date": "2025-01-15T00:00:00Z",
+  "notes": "Fragile item"
+}
+```
+
+### List Shipments
+
+```http
+GET /api/v1/shipments?page=1&per_page=20&status=pending
+```
+
+Query parameters:
+- `page` — Page number (default: 1)
+- `per_page` — Items per page (default: 20, max: 100)
+- `status` — Filter by status: `pending`, `label_created`, `shipped`, `delivered`, `cancelled`
+
+### Get Shipment
+
+```http
+GET /api/v1/shipments/<id>
+```
+
+### Update Shipment
+
+```http
+PUT /api/v1/shipments/<id>
+Content-Type: application/json
+
+{
+  "carrier": "UPS",
+  "tracking_number": "1Z999999999",
+  "weight_oz": 14.0
+}
+```
+
+### Delete Shipment (Soft Delete)
+
+```http
+DELETE /api/v1/shipments/<id>
+```
+
+### Ship
+
+```http
+POST /api/v1/shipments/<id>/ship
+```
+
+Transitions status to `shipped`, sets `shipped_at`, updates linked order status to `shipped`.
+
+### Deliver
+
+```http
+POST /api/v1/shipments/<id>/deliver
+```
+
+Transitions status to `delivered`, sets `delivered_at`, updates linked order status to `delivered`.
+
+### Cancel
+
+```http
+POST /api/v1/shipments/<id>/cancel
+```
+
+### Create Label
+
+```http
+POST /api/v1/shipments/<id>/label
+```
+
+Generates a shipping label via the configured provider. At MVP, uses ManualProvider (stub).
+
+### Bulk Create Shipments
+
+```http
+POST /api/v1/shipments/bulk
+Content-Type: application/json
+
+{
+  "show_id": "uuid"
+}
+```
+
+Creates shipments for all pending orders in the specified show that don't already have a shipment.
+
+### List Overdue Shipments
+
+```http
+GET /api/v1/shipments/overdue
+```
+
+Returns shipments past their `ship_by_date` that haven't been shipped yet.
+
+### List Deleted Shipments
+
+```http
+GET /api/v1/shipments/deleted
+```
+
+### Restore Shipment
+
+```http
+POST /api/v1/shipments/<id>/restore
+```
+
+### Generate Packing List
+
+```http
+GET /api/v1/packing-lists/<show_id>
+```
+
+Returns a packing list grouped by buyer with addresses and order item details.
+
+---
+
 ## Health Checks
 
 ### Gateway Health (Liveness)
@@ -474,7 +609,8 @@ GET /api/v1/health
     "auth": "ok",
     "inventory": "ok",
     "sales": "ok",
-    "analytics": "ok"
+    "analytics": "ok",
+    "shipping": "ok"
   }
 }
 ```

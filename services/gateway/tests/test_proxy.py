@@ -53,6 +53,15 @@ class TestResolveService:
         assert resolve_service("/api/v1/analytics/summary") == "analytics"
         assert resolve_service("/api/v1/analytics/trends") == "analytics"
 
+    def test_shipments_routes(self) -> None:
+        assert resolve_service("/api/v1/shipments") == "shipping"
+        assert resolve_service(f"/api/v1/shipments/{uuid.uuid4()}") == "shipping"
+        assert resolve_service("/api/v1/shipments/bulk") == "shipping"
+        assert resolve_service("/api/v1/shipments/overdue") == "shipping"
+
+    def test_packing_lists_routes(self) -> None:
+        assert resolve_service(f"/api/v1/packing-lists/{uuid.uuid4()}") == "shipping"
+
     def test_unknown_route(self) -> None:
         assert resolve_service("/api/v1/unknown") is None
         assert resolve_service("/api/v1/billing") is None
@@ -69,10 +78,12 @@ class TestInitServiceUrls:
         assert "inventory" in urls
         assert "sales" in urls
         assert "analytics" in urls
+        assert "shipping" in urls
         assert "localhost:5001" in urls["auth"]
         assert "localhost:5002" in urls["inventory"]
         assert "localhost:5003" in urls["sales"]
         assert "localhost:5004" in urls["analytics"]
+        assert "localhost:5005" in urls["shipping"]
 
     def test_env_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("AUTH_SERVICE_URL", "http://auth:8001")
