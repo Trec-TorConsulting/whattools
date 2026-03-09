@@ -167,6 +167,7 @@ All models extend `BaseModel` with UUID primary keys, `created_at`/`updated_at` 
 | Data Fetching | TanStack Query v5, TanStack React Table v8 |
 | Charts | Recharts 2 |
 | Frontend Testing | Vitest, React Testing Library, MSW 2 |
+| E2E Testing | Playwright (Chromium) |
 | Web Server | nginx 1.27 |
 
 ## Web Frontend
@@ -187,6 +188,7 @@ All models extend `BaseModel` with UUID primary keys, `created_at`/`updated_at` 
 | Toasts | Sonner |
 | Icons | Lucide React |
 | Testing | Vitest + React Testing Library + MSW 2 |
+| E2E Testing | Playwright (Chromium) |
 
 ### Architecture
 
@@ -227,6 +229,11 @@ web/src/
 - **Docker**: Multi-stage build — `node:22-alpine` (build) → `nginx:1.27-alpine` (serve)
 - **Nginx**: Gzip compression, security headers, asset caching (1yr immutable), SPA fallback, `/api` reverse proxy to gateway
 - **K8S**: 2-replica Deployment (64Mi/50m request, 128Mi/100m limit), ClusterIP Service, Traefik Ingress at `/` with `/api` routed to gateway
+
+### Testing Strategy
+- **Unit tests**: Vitest + React Testing Library + MSW — 51 tests covering utils, role logic, component rendering, guards, and auth flows
+- **E2E tests**: Playwright against full Docker Compose stack — auth flows, CRUD for inventory/sales/shipping, analytics, role-based access, settings, theme toggle
+- **Test data**: Seeded via `scripts/seed.py` — owner (`demo@whattools.dev`) and member (`member@whattools.dev`) accounts with sample categories
 
 ## Security
 
