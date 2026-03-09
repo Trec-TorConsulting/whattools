@@ -1,0 +1,8 @@
+"""WSGI entry point for the sales service."""
+
+from services.sales.app import create_app
+
+app = create_app()
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5003, debug=True)

@@ -14,3 +14,5 @@ data:
   HEALTH_CHECK_TIMEOUT: "5"
   AUTH_SERVICE_URL: "http://auth:5001"
   INVENTORY_SERVICE_URL: "http://inventory:5002"
+  SALES_SERVICE_URL: "http://sales:5003"
+  ANALYTICS_SERVICE_URL: "http://analytics:5004"

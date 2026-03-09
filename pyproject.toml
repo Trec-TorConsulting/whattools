@@ -143,6 +143,8 @@ omit = [
     "services/shared/app_factory.py",
     "services/auth/app.py",
     "services/inventory/app.py",
+    "services/sales/app.py",
+    "services/analytics/app.py",
 ]
 
 [tool.coverage.report]

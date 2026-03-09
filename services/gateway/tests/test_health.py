@@ -31,13 +31,14 @@ class TestAggregatedHealth:
         assert data["services"]["gateway"] == "ok"
         assert data["services"]["auth"] == "ok"
         assert data["services"]["inventory"] == "ok"
+        assert data["services"]["sales"] == "ok"
+        assert data["services"]["analytics"] == "ok"
 
     def test_one_service_down(self, client: FlaskClient) -> None:
         def mock_get(url: str, **kwargs):  # type: ignore[no-untyped-def]
-            if "5001" in url:  # auth
-                return httpx.Response(200, json={"status": "ok"})
-            # inventory is down
-            raise httpx.ConnectError("Connection refused")
+            if "5002" in url:  # inventory
+                raise httpx.ConnectError("Connection refused")
+            return httpx.Response(200, json={"status": "ok"})
 
         with patch("services.gateway.routes.health_routes.httpx.get", side_effect=mock_get):
             resp = client.get("/api/v1/health")
@@ -84,3 +85,5 @@ class TestAggregatedHealth:
         assert data["services"]["gateway"] == "ok"  # gateway itself is fine
         assert data["services"]["auth"] == "unhealthy"
         assert data["services"]["inventory"] == "unhealthy"
+        assert data["services"]["sales"] == "unhealthy"
+        assert data["services"]["analytics"] == "unhealthy"

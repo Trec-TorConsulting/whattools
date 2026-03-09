@@ -91,6 +91,8 @@ services:
     environment:
       - AUTH_SERVICE_URL=http://auth:5001
       - INVENTORY_SERVICE_URL=http://inventory:5002
+      - SALES_SERVICE_URL=http://sales:5003
+      - ANALYTICS_SERVICE_URL=http://analytics:5004
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
@@ -103,12 +105,66 @@ services:
         condition: service_healthy
       inventory:
         condition: service_healthy
+      sales:
+        condition: service_healthy
+      analytics:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 5s
+
+  sales:
+    build:
+      context: .
+      dockerfile: services/sales/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://whattools:whattools@postgres:5432/whattools
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-jwt-secret}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+    ports:
+      - "5003:5003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  analytics:
+    build:
+      context: .
+      dockerfile: services/analytics/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://whattools:whattools@postgres:5432/whattools
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-jwt-secret}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+    ports:
+      - "5004:5004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   postgres_data:

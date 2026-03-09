@@ -284,6 +284,173 @@ Authorization: Bearer eyJ...
 
 ---
 
+## Shows (Sales)
+
+### Create Show
+
+```http
+POST /api/v1/shows
+Authorization: Bearer eyJ...
+Content-Type: application/json
+
+{
+  "title": "Friday Night Cards",
+  "platform": "whatnot",
+  "scheduled_at": "2026-03-14T20:00:00Z",
+  "notes": "Sports cards auction"
+}
+```
+
+### List Shows
+
+```http
+GET /api/v1/shows
+Authorization: Bearer eyJ...
+```
+
+Query parameters:
+- `status` — filter by status: `planned`, `live`, `completed`, `cancelled`
+- `cursor` — pagination cursor (UUID of last show)
+- `limit` — items per page (default: 20, max: 100)
+
+### Show Lifecycle
+
+```http
+POST /api/v1/shows/{show_id}/start      # planned → live
+POST /api/v1/shows/{show_id}/complete    # live → completed
+POST /api/v1/shows/{show_id}/cancel      # planned/live → cancelled
+```
+
+Cancelling a show also cancels all pending orders and restores inventory items to available.
+
+---
+
+## Orders (Sales)
+
+### Create Order
+
+```http
+POST /api/v1/orders
+Authorization: Bearer eyJ...
+Content-Type: application/json
+
+{
+  "show_id": "uuid",
+  "inventory_item_id": "uuid",
+  "sale_price": 49.99,
+  "platform_fees": 5.00,
+  "shipping_cost": 3.50,
+  "buyer_username": "buyer123",
+  "notes": "Paid via PayPal"
+}
+```
+
+Profit is automatically calculated as: `sale_price - platform_fees - shipping_cost - item.cogs`
+
+### List Orders
+
+```http
+GET /api/v1/orders
+Authorization: Bearer eyJ...
+```
+
+Query parameters:
+- `status` — filter by status: `pending`, `shipped`, `delivered`, `cancelled`
+- `show_id` — filter by show UUID
+- `cursor` — pagination cursor
+- `limit` — items per page (default: 20, max: 100)
+
+### Cancel Order
+
+```http
+POST /api/v1/orders/{order_id}/cancel
+Authorization: Bearer eyJ...
+```
+
+Cancelling restores the inventory item to available status.
+
+### Soft Delete / Restore
+
+```http
+DELETE /api/v1/orders/{order_id}
+POST /api/v1/orders/{order_id}/restore
+GET /api/v1/orders/deleted
+```
+
+---
+
+## Analytics
+
+All analytics endpoints require authentication and return account-scoped data.
+
+### Revenue Summary
+
+```http
+GET /api/v1/analytics/summary?period=30d
+Authorization: Bearer eyJ...
+```
+
+Query parameters:
+- `period` — `7d`, `30d`, `90d`, `365d`, `all` (default: `30d`)
+
+**Response** (200):
+```json
+{
+  "data": {
+    "period": "30d",
+    "order_count": 47,
+    "total_revenue": 2350.00,
+    "total_cogs": 940.00,
+    "total_fees": 235.00,
+    "total_shipping": 188.00,
+    "gross_profit": 1410.00,
+    "net_profit": 987.00,
+    "margin_percent": 42.0,
+    "average_order_value": 50.0,
+    "sell_through_rate": 68.5
+  }
+}
+```
+
+### Category Performance
+
+```http
+GET /api/v1/analytics/categories?period=30d
+Authorization: Bearer eyJ...
+```
+
+### Show Performance
+
+```http
+GET /api/v1/analytics/shows?period=30d
+Authorization: Bearer eyJ...
+```
+
+### Revenue Trends
+
+```http
+GET /api/v1/analytics/trends?period=30d&granularity=day
+Authorization: Bearer eyJ...
+```
+
+Query parameters:
+- `period` — `7d`, `30d`, `90d`, `365d`, `all`
+- `granularity` — `day`, `week`, `month` (default: `day`)
+
+### Top Selling Items
+
+```http
+GET /api/v1/analytics/top-items?period=30d&sort_by=revenue&limit=10
+Authorization: Bearer eyJ...
+```
+
+Query parameters:
+- `period` — `7d`, `30d`, `90d`, `365d`, `all`
+- `sort_by` — `revenue`, `profit`, `quantity` (default: `revenue`)
+- `limit` — 1-100 (default: 10)
+
+---
+
 ## Health Checks
 
 ### Gateway Health (Liveness)
@@ -305,7 +472,9 @@ GET /api/v1/health
   "services": {
     "gateway": "ok",
     "auth": "ok",
-    "inventory": "ok"
+    "inventory": "ok",
+    "sales": "ok",
+    "analytics": "ok"
   }
 }
 ```
