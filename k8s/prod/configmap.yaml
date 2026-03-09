@@ -1,0 +1,16 @@
+# WhatTools ConfigMap — non-sensitive configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: whattools-config
+  namespace: whattools
+data:
+  LOG_LEVEL: "INFO"
+  CORS_ORIGINS: "https://whattools.trector.com"
+  JWT_ACCESS_TOKEN_EXPIRES: "900"
+  JWT_REFRESH_TOKEN_EXPIRES: "604800"
+  RATE_LIMIT_PER_IP: "60/minute"
+  PROXY_TIMEOUT: "30"
+  HEALTH_CHECK_TIMEOUT: "5"
+  AUTH_SERVICE_URL: "http://auth:5001"
+  INVENTORY_SERVICE_URL: "http://inventory:5002"

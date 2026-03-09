@@ -1,0 +1,27 @@
+# Traefik Ingress for whattools.trector.com
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: whattools-ingress
+  namespace: whattools
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - whattools.trector.com
+      secretName: whattools-tls
+  rules:
+    - host: whattools.trector.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 5000
