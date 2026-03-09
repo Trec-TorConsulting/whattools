@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Upload, Trash2, MoreHorizontal, Pencil } from "lucide-react";
+import { Plus, Upload, Trash2, MoreHorizontal, Pencil, Tags } from "lucide-react";
+import { Link } from "react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { queryKeys } from "@/lib/query-keys";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -58,10 +59,12 @@ export function ItemsListPage() {
     queryFn: () => inventoryApi.listCategories(),
   });
 
-  const items = data?.data ?? [];
-  const categories: Category[] = categoriesData?.data ?? [];
-  const hasMore = (data?.meta as Record<string, unknown>)?.has_more === true;
-  const nextCursor = (data?.meta as Record<string, unknown>)?.next_cursor as string | undefined;
+  const itemsPayload = data?.data as Record<string, unknown> | undefined;
+  const items = (itemsPayload?.items as Item[]) ?? [];
+  const categories: Category[] =
+    (categoriesData?.data as Record<string, unknown>)?.categories as Category[] ?? [];
+  const hasMore = !!itemsPayload?.next_cursor;
+  const nextCursor = itemsPayload?.next_cursor as string | undefined;
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => inventoryApi.deleteItem(id),
@@ -155,6 +158,11 @@ export function ItemsListPage() {
         description="Manage your items and stock levels"
         actions={
           <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/inventory/categories">
+                <Tags className="mr-2 h-4 w-4" /> Categories
+              </Link>
+            </Button>
             <Button variant="outline" onClick={() => setCsvOpen(true)}>
               <Upload className="mr-2 h-4 w-4" /> Import CSV
             </Button>
@@ -186,24 +194,24 @@ export function ItemsListPage() {
         }}
         toolbar={
           <div className="flex gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All statuses</SelectItem>
+                <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="available">Available</SelectItem>
                 <SelectItem value="sold">Sold</SelectItem>
                 <SelectItem value="reserved">Reserved</SelectItem>
                 <SelectItem value="listed">Listed</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select value={categoryFilter || "all"} onValueChange={(v) => setCategoryFilter(v === "all" ? "" : v)}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="All categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All categories</SelectItem>
+                <SelectItem value="all">All categories</SelectItem>
                 {categories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
                     {cat.name}

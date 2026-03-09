@@ -26,6 +26,8 @@ COPY --from=base /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.
 COPY --from=base /usr/local/bin/gunicorn /usr/local/bin/gunicorn
 
 COPY services/shared/ /app/services/shared/
+COPY services/auth/__init__.py /app/services/auth/__init__.py
+COPY services/auth/models/ /app/services/auth/models/
 COPY services/inventory/ /app/services/inventory/
 
 USER appuser

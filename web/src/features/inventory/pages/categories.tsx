@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, FolderOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, FolderOpen, ArrowLeft } from "lucide-react";
 import { queryKeys } from "@/lib/query-keys";
 import { inventoryApi } from "@/features/inventory/api";
 import { formatDate } from "@/lib/utils";
@@ -34,7 +35,8 @@ export function CategoriesPage() {
     queryFn: () => inventoryApi.listCategories(),
   });
 
-  const categories = data?.data ?? [];
+  const categories =
+    (data?.data as Record<string, unknown>)?.categories as Category[] ?? [];
 
   const createMutation = useMutation({
     mutationFn: (catName: string) =>
@@ -97,6 +99,13 @@ export function CategoriesPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-2 mb-2">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/inventory">
+            <ArrowLeft className="mr-1 h-4 w-4" /> Back to Inventory
+          </Link>
+        </Button>
+      </div>
       <PageHeader
         title="Categories"
         description="Organize your inventory with categories"

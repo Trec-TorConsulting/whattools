@@ -1,7 +1,7 @@
 """Sales service layer — show and order management, profit calculation, audit logging."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -52,12 +52,19 @@ class SalesService:
     # ── Show Management ─────────────────────────────────────────────
 
     def create_show(self, data: dict[str, Any], *, actor_id: uuid.UUID) -> dict[str, Any]:
-        """Create a new show."""
+        """Create a new show. If recurrence is specified, creates multiple shows."""
+        recurrence_rule = data.get("recurrence_rule")
+        recurrence_weeks = data.get("recurrence_weeks")
+
+        if recurrence_rule and recurrence_weeks and recurrence_weeks >= 1:
+            return self._create_recurring_shows(data, actor_id=actor_id)
+
         show = Show(
             account_id=self.account_id,
             title=data["title"],
             platform=data.get("platform", "whatnot"),
             scheduled_at=data.get("scheduled_at"),
+            scheduled_end_at=data.get("scheduled_end_at"),
             notes=data.get("notes", ""),
         )
         self.show_repo.create(show)
@@ -79,6 +86,136 @@ class SalesService:
         })
 
         return self._show_to_dict(show)
+
+    def _create_recurring_shows(
+        self, data: dict[str, Any], *, actor_id: uuid.UUID
+    ) -> dict[str, Any]:
+        """Create a series of recurring shows.
+
+        Recurrence model:
+        - recurrence_rule: hourly | daily | weekly | monthly
+        - recurrence_weeks: how many periods to repeat (1-8)
+        - recurrence_days: comma-separated day abbreviations for weekly
+          (e.g. "mon,thu") — allows multiple shows per week
+        - scheduled_end_at: optional end time for each show (duration carried over)
+        """
+        recurrence_rule: str = data["recurrence_rule"]
+        recurrence_weeks: int = data["recurrence_weeks"]
+        recurrence_days: str | None = data.get("recurrence_days")
+        base_scheduled = data.get("scheduled_at")
+        base_end = data.get("scheduled_end_at")
+
+        if not base_scheduled:
+            raise SalesServiceError(
+                "A scheduled date/time is required for recurring shows.",
+                "validation_error",
+                422,
+            )
+
+        # Calculate duration between start and end for carrying over
+        duration = None
+        if base_end:
+            duration = base_end - base_scheduled
+
+        group_id = uuid.uuid4()
+        scheduled_dates: list[datetime] = []
+
+        if recurrence_rule == "weekly" and recurrence_days:
+            # Multiple shows per week on specific days
+            day_abbrevs = [d.strip().lower()[:3] for d in recurrence_days.split(",") if d.strip()]
+            day_map = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+            target_weekdays = sorted(set(day_map[d] for d in day_abbrevs if d in day_map))
+
+            if not target_weekdays:
+                raise SalesServiceError(
+                    "Invalid recurrence days.", "validation_error", 422
+                )
+
+            # Generate dates: for each week, create shows on the specified days
+            # Use the time from the base_scheduled for all shows
+            base_time = base_scheduled.time()
+            base_tz = base_scheduled.tzinfo
+
+            for week in range(recurrence_weeks):
+                # Start of this recurrence week (offset from base_scheduled's week start)
+                week_start = base_scheduled + timedelta(weeks=week)
+                # Find the Monday of that week
+                monday = week_start - timedelta(days=week_start.weekday())
+                for wd in target_weekdays:
+                    show_date = monday + timedelta(days=wd)
+                    show_dt = datetime.combine(show_date.date(), base_time, tzinfo=base_tz)
+                    # Only include dates on or after the first scheduled date
+                    if show_dt >= base_scheduled:
+                        scheduled_dates.append(show_dt)
+        else:
+            # Simple interval-based recurrence
+            delta_map = {
+                "hourly": timedelta(hours=1),
+                "daily": timedelta(days=1),
+                "weekly": timedelta(weeks=1),
+                "monthly": timedelta(days=30),
+            }
+            delta = delta_map[recurrence_rule]
+            for i in range(recurrence_weeks):
+                scheduled_dates.append(base_scheduled + (delta * i))
+
+        if not scheduled_dates:
+            raise SalesServiceError(
+                "No show dates could be generated from the recurrence settings.",
+                "validation_error",
+                422,
+            )
+
+        # Cap at a reasonable maximum
+        if len(scheduled_dates) > 56:  # 8 weeks * 7 days
+            scheduled_dates = scheduled_dates[:56]
+
+        shows: list[Show] = []
+        for sched_dt in scheduled_dates:
+            end_dt = sched_dt + duration if duration else None
+            show = Show(
+                account_id=self.account_id,
+                title=data["title"],
+                platform=data.get("platform", "whatnot"),
+                scheduled_at=sched_dt,
+                scheduled_end_at=end_dt,
+                notes=data.get("notes", ""),
+                recurrence_rule=recurrence_rule,
+                recurrence_days=recurrence_days,
+                recurrence_weeks=recurrence_weeks,
+                recurrence_group_id=group_id,
+            )
+            self.show_repo.create(show)
+            shows.append(show)
+
+        log_audit(
+            self.db,
+            account_id=self.account_id,
+            actor_id=actor_id,
+            action="create",
+            resource_type="shows",
+            resource_id=shows[0].id,
+            changes={
+                "recurrence": {
+                    "rule": recurrence_rule,
+                    "days": recurrence_days,
+                    "weeks": recurrence_weeks,
+                    "total_shows": len(shows),
+                },
+            },
+        )
+        self.db.commit()
+
+        self._publish_event("show.recurring_created", {
+            "group_id": str(group_id),
+            "account_id": str(self.account_id),
+            "title": data["title"],
+            "count": len(shows),
+            "rule": recurrence_rule,
+        })
+
+        # Return the first show in the series
+        return self._show_to_dict(shows[0])
 
     def get_show(self, show_id: uuid.UUID) -> dict[str, Any]:
         """Get a single show by ID."""
@@ -542,10 +679,15 @@ class SalesService:
             "title": show.title,
             "platform": show.platform,
             "scheduled_at": show.scheduled_at.isoformat() if show.scheduled_at else None,
+            "scheduled_end_at": show.scheduled_end_at.isoformat() if show.scheduled_end_at else None,
             "started_at": show.started_at.isoformat() if show.started_at else None,
             "ended_at": show.ended_at.isoformat() if show.ended_at else None,
             "status": show.status,
             "notes": show.notes,
+            "recurrence_rule": show.recurrence_rule,
+            "recurrence_days": show.recurrence_days,
+            "recurrence_weeks": show.recurrence_weeks,
+            "recurrence_group_id": str(show.recurrence_group_id) if show.recurrence_group_id else None,
             "created_at": show.created_at.isoformat(),
             "updated_at": show.updated_at.isoformat(),
             "deleted_at": show.deleted_at.isoformat() if show.deleted_at else None,

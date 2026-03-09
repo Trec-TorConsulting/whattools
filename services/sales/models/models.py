@@ -9,6 +9,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 from services.shared.models import BaseModel
 
 
+class RecurrenceFrequency(StrEnum):
+    """Recurrence frequency for repeating shows."""
+
+    HOURLY = "hourly"
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+
+
 class ShowStatus(StrEnum):
     """Show lifecycle status values."""
 
@@ -45,10 +54,15 @@ class Show(BaseModel):
     title: Mapped[str] = mapped_column(String(255))
     platform: Mapped[str] = mapped_column(String(50), default="whatnot")
     scheduled_at: Mapped[str | None] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
+    scheduled_end_at: Mapped[str | None] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
     started_at: Mapped[str | None] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
     ended_at: Mapped[str | None] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
     status: Mapped[str] = mapped_column(String(20), default=ShowStatus.PLANNED, index=True)
     notes: Mapped[str] = mapped_column(Text, default="")
+    recurrence_rule: Mapped[str | None] = mapped_column(String(20), nullable=True, default=None)
+    recurrence_days: Mapped[str | None] = mapped_column(String(100), nullable=True, default=None)
+    recurrence_weeks: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
+    recurrence_group_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True, default=None, index=True)
 
 
 class Order(BaseModel):

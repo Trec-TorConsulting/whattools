@@ -27,10 +27,13 @@ COPY --from=base /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.
 COPY --from=base /usr/local/bin/celery /usr/local/bin/celery
 
 COPY services/shared/ /app/services/shared/
-COPY services/analytics/ /app/services/analytics/
+COPY services/auth/__init__.py /app/services/auth/__init__.py
 COPY services/auth/models/ /app/services/auth/models/
+COPY services/inventory/__init__.py /app/services/inventory/__init__.py
 COPY services/inventory/models/ /app/services/inventory/models/
+COPY services/sales/__init__.py /app/services/sales/__init__.py
 COPY services/sales/models/ /app/services/sales/models/
+COPY services/analytics/ /app/services/analytics/
 
 USER appuser
 

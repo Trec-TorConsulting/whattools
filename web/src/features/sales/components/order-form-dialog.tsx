@@ -85,6 +85,9 @@ export function OrderFormDialog({ open, onOpenChange, order, showId }: OrderForm
     onError: () => setError("Operation failed"),
   });
 
+  const showsList = (showsData?.data as Record<string, unknown> | undefined)?.items as Array<{ id: string; title: string }> | undefined;
+  const itemsList = (itemsData?.data as Record<string, unknown> | undefined)?.items as Array<{ id: string; name: string; sku?: string }> | undefined;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -104,7 +107,7 @@ export function OrderFormDialog({ open, onOpenChange, order, showId }: OrderForm
                 <Select value={watch("show_id")} onValueChange={(v) => setValue("show_id", v)}>
                   <SelectTrigger><SelectValue placeholder="Select show" /></SelectTrigger>
                   <SelectContent>
-                    {(showsData?.data ?? []).map((s) => (
+                    {(showsList ?? []).map((s) => (
                       <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
                     ))}
                   </SelectContent>
@@ -125,7 +128,7 @@ export function OrderFormDialog({ open, onOpenChange, order, showId }: OrderForm
                 <Select value={watch("item_id")} onValueChange={(v) => setValue("item_id", v)}>
                   <SelectTrigger><SelectValue placeholder="Select item" /></SelectTrigger>
                   <SelectContent>
-                    {(itemsData?.data ?? []).map((item) => (
+                    {(itemsList ?? []).map((item) => (
                       <SelectItem key={item.id} value={item.id}>{item.name} ({item.sku ?? "No SKU"})</SelectItem>
                     ))}
                   </SelectContent>

@@ -48,9 +48,10 @@ export function ShipmentsListPage() {
     queryFn: () => shippingApi.listShipments(filters),
   });
 
-  const shipments = data?.data ?? [];
-  const hasMore = (data?.meta as Record<string, unknown>)?.has_more === true;
-  const nextCursor = (data?.meta as Record<string, unknown>)?.next_cursor as string | undefined;
+  const payload = data?.data as Record<string, unknown> | undefined;
+  const shipments = (payload?.items as Shipment[]) ?? [];
+  const hasMore = !!payload?.next_cursor;
+  const nextCursor = payload?.next_cursor as string | undefined;
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => shippingApi.deleteShipment(id),
@@ -196,12 +197,12 @@ export function ShipmentsListPage() {
           onPrev: () => pagination.goToPrev(),
         }}
         toolbar={
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All statuses</SelectItem>
+              <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="label_created">Label Created</SelectItem>
               <SelectItem value="shipped">Shipped</SelectItem>

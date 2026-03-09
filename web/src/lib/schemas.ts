@@ -134,10 +134,15 @@ export const ShowSchema = z.object({
   title: z.string(),
   status: z.enum(["planned", "live", "completed", "cancelled"]),
   scheduled_at: z.string().nullable(),
+  scheduled_end_at: z.string().nullable().optional(),
   started_at: z.string().nullable(),
   completed_at: z.string().nullable(),
   platform_url: z.string().nullable(),
   notes: z.string().nullable(),
+  recurrence_rule: z.enum(["hourly", "daily", "weekly", "monthly"]).nullable().optional(),
+  recurrence_days: z.string().nullable().optional(),
+  recurrence_weeks: z.number().nullable().optional(),
+  recurrence_group_id: z.string().nullable().optional(),
   account_id: z.string(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -146,8 +151,12 @@ export const ShowSchema = z.object({
 export const CreateShowSchema = z.object({
   title: z.string().min(1, "Title is required"),
   scheduled_at: z.string().optional(),
+  scheduled_end_at: z.string().optional(),
   platform_url: z.string().url().optional().or(z.literal("")),
   notes: z.string().optional(),
+  recurrence_rule: z.enum(["hourly", "daily", "weekly", "monthly"]).optional(),
+  recurrence_days: z.string().optional(),
+  recurrence_weeks: z.number().min(1).max(8).optional(),
 });
 
 export const OrderSchema = z.object({

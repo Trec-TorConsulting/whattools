@@ -47,7 +47,8 @@ export function ShowDetailPage() {
   if (!data?.data) return <div>Show not found</div>;
 
   const show = data.data;
-  const orders: Order[] = ordersData?.data ?? [];
+  const ordersPayload = ordersData?.data as Record<string, unknown> | undefined;
+  const orders: Order[] = (ordersPayload?.items as Order[]) ?? [];
   const totalRevenue = orders.reduce((sum, o) => sum + Number(o.sale_price) * o.quantity, 0);
   const totalProfit = orders.reduce((sum, o) => sum + Number(o.profit), 0);
 

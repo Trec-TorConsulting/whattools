@@ -38,6 +38,7 @@ def create_app(*, config_overrides: dict[str, Any] | None = None) -> Flask:
     app.register_blueprint(health_bp)
 
     # API routes
+    from services.auth.models import models as _auth_models  # noqa: F401 — register accounts table
     from services.shipping.routes.shipment_routes import shipments_bp
     from services.shipping.routes.packing_list_routes import packing_lists_bp
 

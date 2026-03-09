@@ -50,9 +50,10 @@ export function OrdersListPage() {
     queryFn: () => salesApi.listOrders(filters),
   });
 
-  const orders = data?.data ?? [];
-  const hasMore = (data?.meta as Record<string, unknown>)?.has_more === true;
-  const nextCursor = (data?.meta as Record<string, unknown>)?.next_cursor as string | undefined;
+  const payload = data?.data as Record<string, unknown> | undefined;
+  const orders = (payload?.items as Order[]) ?? [];
+  const hasMore = !!payload?.next_cursor;
+  const nextCursor = payload?.next_cursor as string | undefined;
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => salesApi.deleteOrder(id),
@@ -191,12 +192,12 @@ export function OrdersListPage() {
           onPrev: () => pagination.goToPrev(),
         }}
         toolbar={
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All statuses</SelectItem>
+              <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="shipped">Shipped</SelectItem>
               <SelectItem value="delivered">Delivered</SelectItem>

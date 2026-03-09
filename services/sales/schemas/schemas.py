@@ -9,7 +9,23 @@ class ShowCreateSchema(Schema):
     title = fields.String(required=True, validate=validate.Length(min=1, max=255))
     platform = fields.String(load_default="whatnot", validate=validate.Length(max=50))
     scheduled_at = fields.DateTime(load_default=None, allow_none=True)
+    scheduled_end_at = fields.DateTime(load_default=None, allow_none=True)
     notes = fields.String(load_default="", validate=validate.Length(max=5000))
+    recurrence_rule = fields.String(
+        load_default=None,
+        allow_none=True,
+        validate=validate.OneOf(["hourly", "daily", "weekly", "monthly"]),
+    )
+    recurrence_days = fields.String(
+        load_default=None,
+        allow_none=True,
+        validate=validate.Length(max=100),
+    )
+    recurrence_weeks = fields.Integer(
+        load_default=None,
+        allow_none=True,
+        validate=validate.Range(min=1, max=8),
+    )
 
 
 class ShowUpdateSchema(Schema):
@@ -18,6 +34,7 @@ class ShowUpdateSchema(Schema):
     title = fields.String(validate=validate.Length(min=1, max=255))
     platform = fields.String(validate=validate.Length(max=50))
     scheduled_at = fields.DateTime(allow_none=True)
+    scheduled_end_at = fields.DateTime(allow_none=True)
     notes = fields.String(validate=validate.Length(max=5000))
 
 
@@ -29,10 +46,15 @@ class ShowResponseSchema(Schema):
     title = fields.String(dump_only=True)
     platform = fields.String(dump_only=True)
     scheduled_at = fields.DateTime(dump_only=True, allow_none=True)
+    scheduled_end_at = fields.DateTime(dump_only=True, allow_none=True)
     started_at = fields.DateTime(dump_only=True, allow_none=True)
     ended_at = fields.DateTime(dump_only=True, allow_none=True)
     status = fields.String(dump_only=True)
     notes = fields.String(dump_only=True)
+    recurrence_rule = fields.String(dump_only=True, allow_none=True)
+    recurrence_days = fields.String(dump_only=True, allow_none=True)
+    recurrence_weeks = fields.Integer(dump_only=True, allow_none=True)
+    recurrence_group_id = fields.UUID(dump_only=True, allow_none=True)
     created_at = fields.DateTime(dump_only=True)
     updated_at = fields.DateTime(dump_only=True)
     deleted_at = fields.DateTime(dump_only=True, allow_none=True)

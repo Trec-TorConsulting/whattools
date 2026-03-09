@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Link } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, MoreHorizontal, Tv, Play, CheckCircle, XCircle } from "lucide-react";
+import { Plus, MoreHorizontal, Tv, Play, CheckCircle, XCircle, Repeat } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { queryKeys } from "@/lib/query-keys";
 import { formatDate, formatRelative } from "@/lib/utils";
@@ -51,9 +51,10 @@ export function ShowsListPage() {
     queryFn: () => salesApi.listShows(filters),
   });
 
-  const shows = data?.data ?? [];
-  const hasMore = (data?.meta as Record<string, unknown>)?.has_more === true;
-  const nextCursor = (data?.meta as Record<string, unknown>)?.next_cursor as string | undefined;
+  const payload = data?.data as Record<string, unknown> | undefined;
+  const shows = (payload?.items as Show[]) ?? [];
+  const hasMore = !!payload?.next_cursor;
+  const nextCursor = payload?.next_cursor as string | undefined;
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => salesApi.deleteShow(id),
@@ -86,9 +87,17 @@ export function ShowsListPage() {
       accessorKey: "title",
       header: "Title",
       cell: ({ row }) => (
-        <Link to={`/shows/${row.original.id}`} className="font-medium text-primary hover:underline">
-          {row.original.title}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to={`/shows/${row.original.id}`} className="font-medium text-primary hover:underline">
+            {row.original.title}
+          </Link>
+          {row.original.recurrence_rule && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground" title={`Repeats ${row.original.recurrence_rule}${row.original.recurrence_days ? ` (${row.original.recurrence_days})` : ""} for ${row.original.recurrence_weeks ?? "?"} periods`}>
+              <Repeat className="h-3 w-3" />
+              {row.original.recurrence_rule}
+            </span>
+          )}
+        </div>
       ),
     },
     {
@@ -189,12 +198,12 @@ export function ShowsListPage() {
           onPrev: () => pagination.goToPrev(),
         }}
         toolbar={
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All statuses</SelectItem>
+              <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="planned">Planned</SelectItem>
               <SelectItem value="live">Live</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
