@@ -1,0 +1,14 @@
+apiVersion: v2
+name: whattools
+description: WhatTools — B2B SaaS platform for Whatnot live-selling sellers
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - whatnot
+  - live-selling
+  - saas
+  - microservices
+maintainers:
+  - name: WhatTools Team
+home: https://whattools.trector.com

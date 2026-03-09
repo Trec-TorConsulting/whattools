@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: whattools-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "whattools.labels" . | nindent 4 }}
+data:
+  LOG_LEVEL: "INFO"
+  CORS_ORIGINS: "https://{{ .Values.ingress.host }}"
+  JWT_ACCESS_TOKEN_EXPIRES: "900"
+  JWT_REFRESH_TOKEN_EXPIRES: "604800"
+  RATE_LIMIT_PER_IP: "60"
+  AUTH_SERVICE_URL: "http://auth:{{ .Values.services.auth.port }}"
+  INVENTORY_SERVICE_URL: "http://inventory:{{ .Values.services.inventory.port }}"
+  SALES_SERVICE_URL: "http://sales:{{ .Values.services.sales.port }}"
+  ANALYTICS_SERVICE_URL: "http://analytics:{{ .Values.services.analytics.port }}"
+  SHIPPING_SERVICE_URL: "http://shipping:{{ .Values.services.shipping.port }}"

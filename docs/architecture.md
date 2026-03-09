@@ -161,6 +161,8 @@ All models extend `BaseModel` with UUID primary keys, `created_at`/`updated_at` 
 | Containerization | Docker |
 | Orchestration | K3S (Kubernetes) |
 | Ingress | Traefik |
+| Package Management | Helm 3 |
+| Secrets | Bitnami SealedSecrets (optional) |
 | Package Manager | uv |
 | Frontend | React 19, TypeScript 5.7, Vite 6 |
 | UI Components | shadcn/ui (Radix UI), Tailwind CSS 4 |
@@ -246,3 +248,52 @@ web/src/
 - Input validation at API boundaries (Marshmallow schemas)
 - SQL injection prevention (parameterized queries via SQLAlchemy)
 - Account-scoped data isolation in all queries
+
+## Production Hardening
+
+### Helm Chart (`helm/whattools/`)
+Full Helm chart packaging all 61 K8S resources with configurable `values.yaml`:
+- **Parameterized**: image registry/tag, replicas, resource limits, storage classes, domain names
+- **Init containers**: Database migration via Alembic runs before service startup
+- **Rolling updates**: Zero-downtime deploys with `maxUnavailable: 0, maxSurge: 1`
+- **SealedSecrets support**: Set `secrets.kind: SealedSecret` for encrypted secrets in Git
+
+### Autoscaling (HPA)
+HorizontalPodAutoscalers on all stateless services:
+- CPU-based scaling (70% target utilization)
+- Gradual scale-down (300s stabilization, 1 pod/min) to prevent flapping
+- Aggressive scale-up (60s stabilization, 2 pods/min) for traffic spikes
+- Per-service min/max: gateway 2–6, auth 2–8, web 2–10, analytics 2–4
+
+### PodDisruptionBudgets
+`minAvailable: 1` on all services ensuring availability during node drains and upgrades.
+
+### Network Policies
+Default-deny ingress with explicit allow rules:
+- Ingress → gateway & web (external traffic)
+- Gateway → all backend services (API proxy)
+- All services → PostgreSQL & Redis (data layer)
+- Promtail → Loki, Grafana → Loki (observability)
+
+### Security Contexts
+All service pods run with:
+- `runAsNonRoot: true`, `runAsUser: 1000`
+- `readOnlyRootFilesystem: true`
+- `allowPrivilegeEscalation: false`
+- `capabilities.drop: [ALL]`
+
+### Health Probes
+Every service has both liveness and readiness probes:
+- **Backend services**: Liveness at `/health` (no DB), Readiness at `/ready` (DB connectivity check)
+- **Gateway**: Both probes at `/health`
+- **Web (nginx)**: Both probes at `/health`
+- **Analytics worker**: Exec-based liveness probe
+- **PostgreSQL**: `pg_isready` exec probe
+- **Redis**: `redis-cli ping` exec probe
+
+### Persistent Storage
+- PostgreSQL: 10Gi PVC (ReadWriteOnce)
+- Redis: 2Gi PVC (ReadWriteOnce) — previously emptyDir, now persistent
+- Loki: 10Gi PVC
+- Grafana: 2Gi PVC
+- Export storage: 10Gi PVC (ReadWriteMany, shared between analytics service and worker)

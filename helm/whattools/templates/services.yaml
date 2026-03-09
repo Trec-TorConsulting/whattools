@@ -1,0 +1,124 @@
+{{/*
+  This template generates Deployment + Service + PDB for each backend microservice.
+  Services: auth, inventory, sales, analytics, shipping
+*/}}
+{{- $root := . -}}
+{{- $defaults := .Values.serviceDefaults -}}
+{{- range $name, $svc := .Values.services }}
+{{- if ne $name "gateway" }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ $root.Values.namespace }}
+  labels:
+    app: {{ $name }}
+    {{- include "whattools.labels" $root | nindent 4 }}
+spec:
+  replicas: {{ $svc.replicas | default $defaults.replicas }}
+  strategy:
+    {{- toYaml $defaults.strategy | nindent 4 }}
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+        {{- include "whattools.labels" $root | nindent 8 }}
+    spec:
+      {{- if $root.Values.migrations.enabled }}
+      initContainers:
+        - name: db-migrate
+          image: {{ include "whattools.image" (dict "global" $root.Values.global "name" $name) }}
+          command: [python, -m, alembic, upgrade, head]
+          workingDir: /app
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: whattools-secrets
+                  key: DATABASE_URL
+          {{- include "whattools.envFrom" $root | nindent 10 }}
+      {{- end }}
+      containers:
+        - name: {{ $name }}
+          image: {{ include "whattools.image" (dict "global" $root.Values.global "name" $name) }}
+          ports:
+            - name: http
+              containerPort: {{ $svc.port }}
+          {{- include "whattools.envFrom" $root | nindent 10 }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: whattools-secrets
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: whattools-secrets
+                  key: REDIS_URL
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: whattools-secrets
+                  key: SECRET_KEY
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: whattools-secrets
+                  key: JWT_SECRET_KEY
+          {{- $probes := $svc.probes | default $defaults.probes }}
+          {{- include "whattools.livenessProbe" $probes.liveness | nindent 10 }}
+          {{- include "whattools.readinessProbe" $probes.readiness | nindent 10 }}
+          resources:
+            {{- toYaml ($svc.resources | default $defaults.resources) | nindent 12 }}
+          {{- include "whattools.securityContext" $defaults.securityContext | nindent 10 }}
+          {{- if eq $name "analytics" }}
+          volumeMounts:
+            - name: export-storage
+              mountPath: /data/exports
+          {{- end }}
+      {{- if eq $name "analytics" }}
+      volumes:
+        - name: export-storage
+          persistentVolumeClaim:
+            claimName: export-storage
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ $root.Values.namespace }}
+  labels:
+    app: {{ $name }}
+    {{- include "whattools.labels" $root | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ $svc.port }}
+      targetPort: http
+      name: http
+  selector:
+    app: {{ $name }}
+{{- if ($defaults.pdb).enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $name }}-pdb
+  namespace: {{ $root.Values.namespace }}
+  labels:
+    app: {{ $name }}
+    {{- include "whattools.labels" $root | nindent 4 }}
+spec:
+  minAvailable: {{ $defaults.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app: {{ $name }}
+{{- end }}
+{{- end }}
+{{- end }}

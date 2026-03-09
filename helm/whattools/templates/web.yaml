@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: web
+    {{- include "whattools.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.web.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+        {{- include "whattools.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: web
+          image: {{ include "whattools.image" (dict "global" .Values.global "name" "web") }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.web.port }}
+          {{- include "whattools.livenessProbe" .Values.web.probes.liveness | nindent 10 }}
+          {{- include "whattools.readinessProbe" (.Values.web.probes.readiness | default .Values.web.probes.liveness) | nindent 10 }}
+          resources:
+            {{- toYaml .Values.web.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: web
+    {{- include "whattools.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      name: http
+  selector:
+    app: web
+{{- if (.Values.web.pdb).enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: web-pdb
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: web
+    {{- include "whattools.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.web.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app: web
+{{- end }}
