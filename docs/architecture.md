@@ -10,16 +10,17 @@ WhatTools is a B2B SaaS platform providing professional-grade tools for [Whatnot
                     ┌─────────────────────────────────┐
                     │        Traefik Ingress           │
                     │    whattools.trector.com          │
-                    └──────────────┬──────────────────┘
-                                   │
-                    ┌──────────────▼──────────────────┐
-                    │       API Gateway (:5000)        │
-                    │  - Request routing & proxy       │
-                    │  - Rate limiting (60/min/IP)     │
-                    │  - X-Request-ID injection        │
-                    │  - Structured access logging     │
-                    │  - CORS enforcement              │
-                    │  - Aggregated health checks      │
+                    └──────────┬──────────┬───────────┘
+                               │ /api     │ /
+                    ┌──────────▼──────┐ ┌─▼──────────────┐
+                    │  API Gateway    │ │  Web Frontend   │
+                    │  (:5000)        │ │  (nginx :80)    │
+                    │ - Request route │ │ - React 19 SPA  │
+                    │ - Rate limiting │ │ - shadcn/ui     │
+                    │ - X-Request-ID  │ │ - Static assets │
+                    │ - Access logs   │ │ - SPA fallback  │
+                    │ - CORS          │ └─────────────────┘
+                    │ - Health checks │
                     └──┬──────┬──────┬──────┬──────┬────────┘
                        │      │      │      │      │
           ┌────────────▼┐ ┌──▼──────────┐ ┌▼────────────┐ ┌──────────────┐ ┌──────────────┐
@@ -161,6 +162,71 @@ All models extend `BaseModel` with UUID primary keys, `created_at`/`updated_at` 
 | Orchestration | K3S (Kubernetes) |
 | Ingress | Traefik |
 | Package Manager | uv |
+| Frontend | React 19, TypeScript 5.7, Vite 6 |
+| UI Components | shadcn/ui (Radix UI), Tailwind CSS 4 |
+| Data Fetching | TanStack Query v5, TanStack React Table v8 |
+| Charts | Recharts 2 |
+| Frontend Testing | Vitest, React Testing Library, MSW 2 |
+| Web Server | nginx 1.27 |
+
+## Web Frontend
+
+### Stack
+| Layer | Technology |
+|-------|-----------|
+| Framework | React 19 |
+| Build Tool | Vite 6 |
+| Language | TypeScript 5.7 |
+| Styling | Tailwind CSS 4 (OKLCH color tokens) |
+| Components | shadcn/ui (Radix UI primitives) |
+| Routing | React Router v7 |
+| Data Fetching | TanStack Query v5 |
+| Tables | TanStack React Table v8 |
+| Charts | Recharts 2 |
+| Forms | react-hook-form + Zod validation |
+| Toasts | Sonner |
+| Icons | Lucide React |
+| Testing | Vitest + React Testing Library + MSW 2 |
+
+### Architecture
+
+```
+web/src/
+├── lib/              # Core utilities & configuration
+│   ├── api-client    # HTTP client with JWT auth + silent refresh
+│   ├── auth          # AuthProvider context (login/register/logout)
+│   ├── schemas       # Zod schemas + TypeScript types
+│   ├── role-utils    # Role-based permission checks
+│   ├── query-keys    # TanStack Query key factory
+│   └── utils         # Formatting helpers (currency, dates, numbers)
+├── hooks/            # Custom React hooks (auth, pagination, theme)
+├── components/
+│   ├── ui/           # 15 shadcn/ui primitives (button, card, dialog, etc.)
+│   └── *.tsx         # 9 shared app components (data-table, app-shell, etc.)
+├── routes/           # Auth & role guards (ProtectedRoute, RoleRoute)
+├── features/
+│   ├── auth/         # Login, Register, Forgot Password, Verify Email
+│   ├── dashboard/    # Role-aware KPI dashboard
+│   ├── inventory/    # Items list, categories, CSV import
+│   ├── sales/        # Shows, orders, profit tracking
+│   ├── shipping/     # Shipments, label management
+│   ├── analytics/    # Charts dashboard, async exports
+│   └── settings/     # Profile, team management, account
+└── test/             # Test setup, MSW mocks, render utilities
+```
+
+### Key Patterns
+- **Component hierarchy**: UI primitives → shared components → feature pages
+- **Role-based access**: Three-tier model (owner > admin > member) enforced at route and component level
+- **JWT auth**: Access tokens in localStorage with automatic silent refresh and concurrent request queuing via mutex
+- **Dark mode**: System preference detection with manual toggle, CSS class strategy
+- **Code splitting**: Vite manual chunks — vendor (46KB), query (93KB), ui (145KB), charts (421KB), app (485KB) gzipped
+- **API proxy**: Vite dev server proxies `/api` → gateway; nginx does the same in production
+
+### Deployment
+- **Docker**: Multi-stage build — `node:22-alpine` (build) → `nginx:1.27-alpine` (serve)
+- **Nginx**: Gzip compression, security headers, asset caching (1yr immutable), SPA fallback, `/api` reverse proxy to gateway
+- **K8S**: 2-replica Deployment (64Mi/50m request, 128Mi/100m limit), ClusterIP Service, Traefik Ingress at `/` with `/api` routed to gateway
 
 ## Security
 
