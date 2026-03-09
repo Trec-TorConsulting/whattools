@@ -39,6 +39,7 @@ curl http://localhost:5000/api/v1/health
 | Inventory  | http://localhost:5002     || Sales      | http://localhost:5003     |
 | Analytics  | http://localhost:5004     |
 | Shipping   | http://localhost:5005     |
+| Analytics Worker | (background Celery process) |
 | PostgreSQL | localhost:5432            |
 | Redis      | localhost:6379            |
 
@@ -73,6 +74,7 @@ docker build -t whattools/auth:latest -f services/auth/Dockerfile .
 docker build -t whattools/inventory:latest -f services/inventory/Dockerfile .
 docker build -t whattools/sales:latest -f services/sales/Dockerfile .
 docker build -t whattools/analytics:latest -f services/analytics/Dockerfile .
+docker build -t whattools/analytics-worker:latest -f services/analytics/Dockerfile.worker .
 docker build -t whattools/shipping:latest -f services/shipping/Dockerfile .
 docker build -t whattools/gateway:latest -f services/gateway/Dockerfile .
 
@@ -100,6 +102,7 @@ Update all base64-encoded values in `k8s/prod/secrets.yaml`:
 - `DATABASE_URL` — PostgreSQL connection string
 - `REDIS_URL` — Redis connection string
 - `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`
+- `GRAFANA_ADMIN_PASSWORD` — Grafana admin UI password
 
 ### 3. Deploy
 
@@ -123,9 +126,14 @@ kubectl apply -f k8s/prod/auth.yaml
 kubectl apply -f k8s/prod/inventory.yaml
 kubectl apply -f k8s/prod/sales.yaml
 kubectl apply -f k8s/prod/analytics.yaml
+kubectl apply -f k8s/prod/analytics-worker.yaml
 kubectl apply -f k8s/prod/shipping.yaml
 kubectl apply -f k8s/prod/gateway.yaml
 kubectl apply -f k8s/prod/ingress.yaml
+kubectl apply -f k8s/prod/loki.yaml
+kubectl apply -f k8s/prod/promtail.yaml
+kubectl apply -f k8s/prod/grafana.yaml
+kubectl apply -f k8s/prod/grafana-dashboards.yaml
 ```
 
 ### 4. Run Migrations on Production
@@ -172,9 +180,21 @@ kubectl logs -n whattools -l app=auth -f
 kubectl logs -n whattools -l app=inventory -f
 kubectl logs -n whattools -l app=sales -f
 kubectl logs -n whattools -l app=analytics -f
+kubectl logs -n whattools -l app=analytics-worker -f
 kubectl logs -n whattools -l app=shipping -f
 kubectl logs -n whattools -l app=gateway -f
 ```
+
+### Grafana Dashboards
+
+Access Grafana at `https://grafana.whattools.trector.com` for log aggregation and monitoring.
+
+Pre-built dashboards (auto-provisioned):
+- **Service Overview**: Request rate, error rate, log volume, and live logs across all services
+- **Error Explorer**: Error trends, filtered error logs, and 24h error counts per service
+- **Health Monitor**: Gateway traffic, per-service activity, warnings, and Celery worker logs
+
+Grafana connects to Loki for log querying. Promtail collects container logs as a DaemonSet and ships them to Loki.
 
 ### Health Checks
 

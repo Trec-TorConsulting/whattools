@@ -125,3 +125,12 @@ def get_top_items():  # type: ignore[no-untyped-def]
     svc = _get_service()
     result = svc.get_top_items(period, sort_by=sort_by, limit=limit)
     return success_response(result)
+
+
+@analytics_bp.route("/show-time-suggestions", methods=["GET"])
+@jwt_required()
+def get_show_time_suggestions():  # type: ignore[no-untyped-def]
+    """Get actionable show time optimization recommendations."""
+    svc = _get_service()
+    result = svc.get_show_time_suggestions()
+    return success_response(result)

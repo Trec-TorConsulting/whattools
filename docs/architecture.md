@@ -99,8 +99,25 @@ Read-only aggregation service for business intelligence:
 - Per-show performance with order counts and duration tracking
 - Time-series trends (daily, weekly, monthly granularity)
 - Top-performing items by revenue, profit, or quantity
+- **Show time optimization**: ML-scored scheduling recommendations based on historical show performance across day/hour slots, with avoid-slots and per-category insights (minimum 3 completed shows required)
+- **Async report exports**: CSV and PDF report generation via Celery worker with embedded matplotlib charts, status tracking, 7-day file expiry and automatic cleanup
 - Redis caching with configurable TTL (default 5 minutes)
 - Supports period filtering: 7d, 30d, 90d, 365d, all
+
+### Analytics Worker
+Celery worker process for async report generation:
+- Processes export jobs (CSV, PDF with charts)
+- Uses Redis DB 2 as broker (`redis://localhost:6379/2`)
+- Beat scheduler runs daily cleanup of expired exports
+- Generates professional PDF reports with ReportLab and matplotlib charts
+
+### Monitoring Stack (Grafana + Loki)
+Centralized log aggregation and dashboarding:
+- **Loki 3.0.0**: Log aggregation with TSDB schema, 30-day retention
+- **Promtail**: DaemonSet log collector with Kubernetes pod discovery and JSON pipeline
+- **Grafana 11.1.0**: Dashboard UI with auto-provisioned Loki datasource
+- Pre-built dashboards: Service Overview, Error Explorer, Health Monitor
+- Accessible at `grafana.whattools.trector.com`
 
 ## Data Model
 
@@ -120,6 +137,7 @@ All models extend `BaseModel` with UUID primary keys, `created_at`/`updated_at` 
 | `orders` | Sales | Item sales with profit tracking |
 | `shipments` | Shipping | Order shipments with tracking |
 | `audit_logs` | Shared | Immutable mutation audit trail |
+| `export_jobs` | Analytics | Async report export tracking |
 
 ## Technology Stack
 
@@ -136,6 +154,9 @@ All models extend `BaseModel` with UUID primary keys, `created_at`/`updated_at` 
 | HTTP Proxy | httpx |
 | Rate Limiting | Flask-Limiter |
 | Logging | structlog (JSON) |
+| Log Aggregation | Grafana Loki 3.0.0 + Promtail |
+| Dashboards | Grafana 11.1.0 |
+| PDF Reports | ReportLab, matplotlib |
 | Containerization | Docker |
 | Orchestration | K3S (Kubernetes) |
 | Ingress | Traefik |

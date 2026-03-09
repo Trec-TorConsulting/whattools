@@ -1,0 +1,63 @@
+# Analytics Worker Deployment + Export PVC
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: export-storage
+  namespace: whattools
+spec:
+  accessModes: [ReadWriteMany]
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-worker
+  namespace: whattools
+  labels:
+    app: analytics-worker
+    app.kubernetes.io/part-of: whattools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analytics-worker
+  template:
+    metadata:
+      labels:
+        app: analytics-worker
+    spec:
+      containers:
+        - name: analytics-worker
+          image: whattools/analytics-worker:latest
+          envFrom:
+            - configMapRef:
+                name: whattools-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: whattools-secrets
+                  key: DATABASE_URL
+            - name: CELERY_BROKER_URL
+              value: "redis://redis:6379/2"
+            - name: CELERY_RESULT_BACKEND
+              value: "redis://redis:6379/2"
+            - name: EXPORTS_DIR
+              value: "/data/exports"
+          volumeMounts:
+            - name: export-storage
+              mountPath: /data/exports
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: export-storage
+          persistentVolumeClaim:
+            claimName: export-storage

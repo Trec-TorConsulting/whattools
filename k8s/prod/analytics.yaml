@@ -47,6 +47,11 @@ spec:
                 secretKeyRef:
                   name: whattools-secrets
                   key: JWT_SECRET_KEY
+            - name: EXPORTS_DIR
+              value: "/data/exports"
+          volumeMounts:
+            - name: export-storage
+              mountPath: /data/exports
           livenessProbe:
             httpGet:
               path: /health
@@ -70,6 +75,10 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
+      volumes:
+        - name: export-storage
+          persistentVolumeClaim:
+            claimName: export-storage
 ---
 apiVersion: v1
 kind: Service

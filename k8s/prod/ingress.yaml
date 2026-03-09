@@ -13,6 +13,7 @@ spec:
   tls:
     - hosts:
         - whattools.trector.com
+        - grafana.whattools.trector.com
       secretName: whattools-tls
   rules:
     - host: whattools.trector.com
@@ -25,3 +26,13 @@ spec:
                 name: gateway
                 port:
                   number: 5000
+    - host: grafana.whattools.trector.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000

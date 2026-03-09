@@ -1,0 +1,196 @@
+# Grafana Dashboard JSON — pre-built dashboards provisioned via ConfigMap
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-json
+  namespace: whattools
+data:
+  service-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "whattools-service-overview",
+        "title": "WhatTools — Service Overview",
+        "tags": ["whattools"],
+        "timezone": "utc",
+        "refresh": "30s",
+        "time": { "from": "now-1h", "to": "now" },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Request Rate by Service",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+            "targets": [
+              {
+                "datasource": { "type": "loki", "uid": "Loki" },
+                "expr": "sum by (service) (count_over_time({namespace=\"whattools\"} | json [1m]))",
+                "legendFormat": "{{ service }}"
+              }
+            ],
+            "fieldConfig": { "defaults": { "unit": "reqps" } }
+          },
+          {
+            "id": 2,
+            "title": "Error Rate by Service",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+            "targets": [
+              {
+                "datasource": { "type": "loki", "uid": "Loki" },
+                "expr": "sum by (service) (count_over_time({namespace=\"whattools\"} | json | level=\"ERROR\" [1m]))",
+                "legendFormat": "{{ service }}"
+              }
+            ],
+            "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } }
+          },
+          {
+            "id": 3,
+            "title": "Log Volume",
+            "type": "barchart",
+            "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+            "targets": [
+              {
+                "datasource": { "type": "loki", "uid": "Loki" },
+                "expr": "sum by (level) (count_over_time({namespace=\"whattools\"} | json [5m]))",
+                "legendFormat": "{{ level }}"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Recent Logs",
+            "type": "logs",
+            "gridPos": { "h": 10, "w": 24, "x": 0, "y": 16 },
+            "targets": [
+              {
+                "datasource": { "type": "loki", "uid": "Loki" },
+                "expr": "{namespace=\"whattools\"} | json"
+              }
+            ],
+            "options": { "showTime": true, "sortOrder": "Descending" }
+          }
+        ]
+      }
+    }
+  error-explorer.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "whattools-error-explorer",
+        "title": "WhatTools — Error Explorer",
+        "tags": ["whattools", "errors"],
+        "timezone": "utc",
+        "refresh": "30s",
+        "time": { "from": "now-6h", "to": "now" },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Error Trend",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+            "targets": [
+              {
+                "datasource": { "type": "loki", "uid": "Loki" },
+                "expr": "sum by (service) (count_over_time({namespace=\"whattools\"} | json | level=\"ERROR\" [5m]))",
+                "legendFormat": "{{ service }}"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Error Logs (All Services)",
+            "type": "logs",
+            "gridPos": { "h": 14, "w": 24, "x": 0, "y": 8 },
+            "targets": [
+              {
+                "datasource": { "type": "loki", "uid": "Loki" },
+                "expr": "{namespace=\"whattools\"} | json | level=\"ERROR\""
+              }
+            ],
+            "options": { "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true }
+          },
+          {
+            "id": 3,
+            "title": "Error Count by Service (24h)",
+            "type": "stat",
+            "gridPos": { "h": 6, "w": 24, "x": 0, "y": 22 },
+            "targets": [
+              {
+                "datasource": { "type": "loki", "uid": "Loki" },
+                "expr": "sum by (service) (count_over_time({namespace=\"whattools\"} | json | level=\"ERROR\" [24h]))",
+                "legendFormat": "{{ service }}"
+              }
+            ],
+            "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" } } }
+          }
+        ]
+      }
+    }
+  health-monitor.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "whattools-health-monitor",
+        "title": "WhatTools — Health Monitor",
+        "tags": ["whattools", "health"],
+        "timezone": "utc",
+        "refresh": "10s",
+        "time": { "from": "now-30m", "to": "now" },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Gateway Requests",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+            "targets": [
+              {
+                "datasource": { "type": "loki", "uid": "Loki" },
+                "expr": "count_over_time({namespace=\"whattools\", app=\"gateway\"} | json [1m])",
+                "legendFormat": "Gateway"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Service Activity (last 5m)",
+            "type": "stat",
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+            "targets": [
+              {
+                "datasource": { "type": "loki", "uid": "Loki" },
+                "expr": "sum by (app) (count_over_time({namespace=\"whattools\"} | json [5m]))",
+                "legendFormat": "{{ app }}"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Warning Logs",
+            "type": "logs",
+            "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+            "targets": [
+              {
+                "datasource": { "type": "loki", "uid": "Loki" },
+                "expr": "{namespace=\"whattools\"} | json | level=\"WARNING\""
+              }
+            ],
+            "options": { "showTime": true, "sortOrder": "Descending" }
+          },
+          {
+            "id": 4,
+            "title": "Celery Worker Activity",
+            "type": "logs",
+            "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+            "targets": [
+              {
+                "datasource": { "type": "loki", "uid": "Loki" },
+                "expr": "{namespace=\"whattools\", app=\"analytics-worker\"} | json"
+              }
+            ],
+            "options": { "showTime": true, "sortOrder": "Descending" }
+          }
+        ]
+      }
+    }

@@ -2,6 +2,7 @@
 
 import json
 import uuid
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -9,7 +10,7 @@ from sqlalchemy import func, select, case, extract
 from sqlalchemy.orm import Session
 
 from services.inventory.models.models import Category, InventoryItem
-from services.sales.models.models import Order, OrderStatus, Show
+from services.sales.models.models import Order, OrderStatus, Show, ShowStatus
 from services.shared.logging import get_logger
 
 logger = get_logger("analytics_service")
@@ -359,6 +360,204 @@ class AnalyticsService:
 
         self._set_cache(cache_key, results)
         return results
+
+    # ── Show Time Optimization ───────────────────────────────────────
+
+    MIN_SHOWS_FOR_SUGGESTIONS = 3
+
+    DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+    def get_show_time_suggestions(self) -> dict[str, Any]:
+        """Analyze historical shows to recommend optimal scheduling times."""
+        cache_key = f"analytics:{self.account_id}:show_time_suggestions"
+        cached = self._get_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        # Get completed shows with started_at
+        shows = list(
+            self.db.execute(
+                select(Show).where(
+                    Show.account_id == self.account_id,
+                    Show.deleted_at.is_(None),
+                    Show.status == ShowStatus.COMPLETED,
+                    Show.started_at.isnot(None),
+                )
+            ).scalars().all()
+        )
+
+        total_analyzed = len(shows)
+
+        if total_analyzed < self.MIN_SHOWS_FOR_SUGGESTIONS:
+            result: dict[str, Any] = {
+                "total_shows_analyzed": total_analyzed,
+                "recommendations": [],
+                "category_insights": [],
+                "avoid_slots": [],
+            }
+            self._set_cache(cache_key, result)
+            return result
+
+        # Build per-slot aggregates: keyed by (day_of_week, hour)
+        slot_data: dict[tuple[int, int], list[dict[str, float]]] = defaultdict(list)
+
+        for show in shows:
+            started = self._ensure_aware(show.started_at)
+            dow = started.weekday()  # 0=Monday
+            hour = started.hour
+
+            # Get orders for this show
+            row = self.db.execute(
+                select(
+                    func.coalesce(func.count(Order.id), 0).label("order_count"),
+                    func.coalesce(func.sum(Order.sale_price), 0).label("revenue"),
+                    func.coalesce(func.sum(Order.profit), 0).label("profit"),
+                ).where(
+                    Order.account_id == self.account_id,
+                    Order.show_id == show.id,
+                    Order.deleted_at.is_(None),
+                    Order.status != OrderStatus.CANCELLED,
+                )
+            ).one()
+
+            slot_data[(dow, hour)].append({
+                "revenue": float(row.revenue),
+                "profit": float(row.profit),
+                "order_count": int(row.order_count),
+            })
+
+        # Compute averages per slot
+        slot_averages: list[dict[str, Any]] = []
+        for (dow, hour), entries in slot_data.items():
+            count = len(entries)
+            avg_revenue = sum(e["revenue"] for e in entries) / count
+            avg_profit = sum(e["profit"] for e in entries) / count
+            avg_orders = sum(e["order_count"] for e in entries) / count
+            slot_averages.append({
+                "day_of_week": self.DAY_NAMES[dow],
+                "dow_index": dow,
+                "hour": hour,
+                "label": f"{self.DAY_NAMES[dow]} {hour % 12 or 12}:00 {'AM' if hour < 12 else 'PM'}",
+                "avg_revenue": round(avg_revenue, 2),
+                "avg_profit": round(avg_profit, 2),
+                "avg_orders": round(avg_orders, 1),
+                "show_count": count,
+            })
+
+        # Normalize and score
+        max_profit = max((s["avg_profit"] for s in slot_averages), default=1) or 1
+        max_revenue = max((s["avg_revenue"] for s in slot_averages), default=1) or 1
+        max_orders = max((s["avg_orders"] for s in slot_averages), default=1) or 1
+
+        for slot in slot_averages:
+            np = slot["avg_profit"] / max_profit if max_profit > 0 else 0
+            nr = slot["avg_revenue"] / max_revenue if max_revenue > 0 else 0
+            no = slot["avg_orders"] / max_orders if max_orders > 0 else 0
+            slot["score"] = round(0.5 * np + 0.3 * nr + 0.2 * no, 4)
+
+        # Sort by score descending
+        slot_averages.sort(key=lambda s: s["score"], reverse=True)
+
+        # Top recommendations (positive scores, top 5)
+        recommendations = []
+        for rank, slot in enumerate(slot_averages[:5], start=1):
+            if slot["avg_profit"] <= 0 and slot["avg_revenue"] <= 0:
+                continue
+            recommendations.append({
+                "rank": rank,
+                "day_of_week": slot["day_of_week"],
+                "hour": slot["hour"],
+                "label": slot["label"],
+                "score": slot["score"],
+                "avg_revenue": slot["avg_revenue"],
+                "avg_profit": slot["avg_profit"],
+                "avg_orders": slot["avg_orders"],
+                "show_count": slot["show_count"],
+            })
+
+        # Avoid slots (bottom performers with negative or near-zero profit)
+        avoid_slots = []
+        for slot in reversed(slot_averages):
+            if slot["avg_profit"] <= 0 or slot["score"] < 0.2:
+                avoid_slots.append({
+                    "day_of_week": slot["day_of_week"],
+                    "hour": slot["hour"],
+                    "label": slot["label"],
+                    "avg_revenue": slot["avg_revenue"],
+                    "avg_profit": slot["avg_profit"],
+                    "show_count": slot["show_count"],
+                })
+            if len(avoid_slots) >= 3:
+                break
+
+        # Category insights: best time per category
+        category_insights = self._get_category_time_insights(shows)
+
+        result = {
+            "total_shows_analyzed": total_analyzed,
+            "recommendations": recommendations,
+            "category_insights": category_insights,
+            "avoid_slots": avoid_slots,
+        }
+
+        self._set_cache(cache_key, result)
+        return result
+
+    def _get_category_time_insights(self, shows: list[Show]) -> list[dict[str, Any]]:
+        """Compute best time slot per category based on profit."""
+        # category_id → list of (dow, hour, profit)
+        cat_slot_profits: dict[uuid.UUID, list[tuple[int, int, float]]] = defaultdict(list)
+
+        for show in shows:
+            started = self._ensure_aware(show.started_at)
+            dow = started.weekday()
+            hour = started.hour
+
+            # Get per-category profits for this show
+            rows = self.db.execute(
+                select(
+                    InventoryItem.category_id,
+                    func.coalesce(func.sum(Order.profit), 0).label("profit"),
+                ).join(InventoryItem, Order.inventory_item_id == InventoryItem.id)
+                .where(
+                    Order.account_id == self.account_id,
+                    Order.show_id == show.id,
+                    Order.deleted_at.is_(None),
+                    Order.status != OrderStatus.CANCELLED,
+                    InventoryItem.category_id.isnot(None),
+                )
+                .group_by(InventoryItem.category_id)
+            ).all()
+
+            for row in rows:
+                cat_slot_profits[row.category_id].append((dow, hour, float(row.profit)))
+
+        # For each category, find the best day/hour by avg profit
+        insights = []
+        for cat_id, entries in cat_slot_profits.items():
+            cat = self.db.execute(
+                select(Category).where(Category.id == cat_id)
+            ).scalar_one_or_none()
+            if not cat:
+                continue
+
+            slot_map: dict[tuple[int, int], list[float]] = defaultdict(list)
+            for dow, hour, profit in entries:
+                slot_map[(dow, hour)].append(profit)
+
+            best_slot = max(slot_map.items(), key=lambda kv: sum(kv[1]) / len(kv[1]))
+            best_dow, best_hour = best_slot[0]
+            avg_profit = round(sum(best_slot[1]) / len(best_slot[1]), 2)
+
+            insights.append({
+                "category": cat.name,
+                "best_day": self.DAY_NAMES[best_dow],
+                "best_hour": best_hour,
+                "avg_profit": avg_profit,
+            })
+
+        insights.sort(key=lambda x: x["avg_profit"], reverse=True)
+        return insights
 
     # ── Helpers ─────────────────────────────────────────────────────
 

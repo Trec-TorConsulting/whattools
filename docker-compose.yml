@@ -157,6 +157,8 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
     ports:
       - "5004:5004"
+    volumes:
+      - export_data:/data/exports
     depends_on:
       postgres:
         condition: service_healthy
@@ -168,6 +170,24 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  analytics-worker:
+    build:
+      context: .
+      dockerfile: services/analytics/Dockerfile.worker
+    environment:
+      - DATABASE_URL=postgresql://whattools:whattools@postgres:5432/whattools
+      - CELERY_BROKER_URL=redis://redis:6379/2
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - EXPORTS_DIR=/data/exports
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - export_data:/data/exports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   shipping:
     build:
@@ -197,3 +217,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  export_data:

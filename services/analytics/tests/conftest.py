@@ -32,6 +32,7 @@ def db_engine() -> Any:
     from services.auth.models import models as _auth_models  # noqa: F401
     from services.inventory.models import models as _inv_models  # noqa: F401
     from services.sales.models import models as _sales_models  # noqa: F401
+    from services.analytics.models import models as _analytics_models  # noqa: F401
 
     Base.metadata.create_all(engine)
     return engine

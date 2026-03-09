@@ -449,6 +449,118 @@ Query parameters:
 - `sort_by` — `revenue`, `profit`, `quantity` (default: `revenue`)
 - `limit` — 1-100 (default: 10)
 
+### Show Time Suggestions
+
+```http
+GET /api/v1/analytics/show-time-suggestions
+Authorization: Bearer eyJ...
+```
+
+Returns actionable scheduling recommendations based on historical show performance. Requires at least 3 completed shows.
+
+**Response** (200):
+```json
+{
+  "data": {
+    "total_shows_analyzed": 15,
+    "recommendations": [
+      {
+        "rank": 1,
+        "day_of_week": "Friday",
+        "hour": 19,
+        "label": "Friday 7:00 PM",
+        "score": 0.95,
+        "avg_revenue": 450.00,
+        "avg_profit": 280.00,
+        "avg_orders": 12.5,
+        "show_count": 4
+      }
+    ],
+    "avoid_slots": [
+      {
+        "day_of_week": "Monday",
+        "hour": 10,
+        "label": "Monday 10:00 AM",
+        "avg_revenue": 50.00,
+        "avg_profit": -5.00,
+        "show_count": 2
+      }
+    ],
+    "category_insights": [
+      {
+        "category": "Trading Cards",
+        "best_day": "Saturday",
+        "best_hour": 20,
+        "avg_profit": 350.00
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Report Exports
+
+Async report generation via Celery worker. Supports CSV and PDF formats with embedded charts.
+
+### Create Export
+
+```http
+POST /api/v1/analytics/exports
+Authorization: Bearer eyJ...
+Content-Type: application/json
+
+{
+  "report_type": "full",
+  "format": "pdf",
+  "period": "30d"
+}
+```
+
+Valid `report_type` values: `summary`, `categories`, `shows`, `trends`, `top_items`, `full`
+Valid `format` values: `csv`, `pdf`
+Valid `period` values: `7d`, `30d`, `90d`, `365d`, `all`
+
+**Response** (201):
+```json
+{
+  "data": {
+    "id": "uuid",
+    "report_type": "full",
+    "format": "pdf",
+    "period": "30d",
+    "status": "pending",
+    "file_size": 0,
+    "expires_at": "2025-01-22T12:00:00Z",
+    "created_at": "2025-01-15T12:00:00Z"
+  }
+}
+```
+
+### List Exports
+
+```http
+GET /api/v1/analytics/exports
+Authorization: Bearer eyJ...
+```
+
+### Get Export Status
+
+```http
+GET /api/v1/analytics/exports/{export_id}
+Authorization: Bearer eyJ...
+```
+
+### Download Export
+
+```http
+GET /api/v1/analytics/exports/{export_id}/download
+Authorization: Bearer eyJ...
+```
+
+Returns the file with appropriate `Content-Type` (`application/pdf`, `text/csv`, or `application/zip`). Only available when status is `completed`.
+
 ---
 
 ## Shipping

@@ -1,0 +1,39 @@
+# Analytics Celery worker
+FROM python:3.12-slim AS base
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir .
+
+# ── Production stage ────────────────────────────────────────────────
+FROM python:3.12-slim AS production
+
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libpq5 && \
+    rm -rf /var/lib/apt/lists/* && \
+    adduser --disabled-password --gecos '' appuser && \
+    mkdir -p /data/exports && chown appuser:appuser /data/exports
+
+COPY --from=base /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=base /usr/local/bin/celery /usr/local/bin/celery
+
+COPY services/shared/ /app/services/shared/
+COPY services/analytics/ /app/services/analytics/
+COPY services/auth/models/ /app/services/auth/models/
+COPY services/inventory/models/ /app/services/inventory/models/
+COPY services/sales/models/ /app/services/sales/models/
+
+USER appuser
+
+VOLUME ["/data/exports"]
+
+CMD ["celery", "-A", "services.analytics.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
