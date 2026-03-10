@@ -14,6 +14,7 @@ import {
   Moon,
   Sun,
   Monitor,
+  Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -45,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Shows", href: "/shows", icon: Tv, minRole: "admin" },
   { label: "Orders", href: "/orders", icon: ShoppingCart, minRole: "admin" },
   { label: "Shipments", href: "/shipments", icon: Truck, minRole: "admin" },
+  { label: "Whatnot", href: "/whatnot", icon: Link2, minRole: "admin" },
   { label: "Analytics", href: "/analytics", icon: BarChart3, minRole: "admin" },
   { label: "Settings", href: "/settings", icon: Settings },
 ];

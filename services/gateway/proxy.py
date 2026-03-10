@@ -26,6 +26,7 @@ def init_service_urls() -> dict[str, str]:
         "sales": os.environ.get("SALES_SERVICE_URL", "http://localhost:5003"),
         "analytics": os.environ.get("ANALYTICS_SERVICE_URL", "http://localhost:5004"),
         "shipping": os.environ.get("SHIPPING_SERVICE_URL", "http://localhost:5005"),
+        "whatnot": os.environ.get("WHATNOT_SERVICE_URL", "http://localhost:5006"),
     }
     return SERVICE_URLS
 
@@ -35,6 +36,7 @@ ROUTE_MAP: list[tuple[str, str]] = [
     ("/api/v1/auth/", "auth"),
     ("/api/v1/account", "auth"),
     ("/api/v1/users/", "auth"),
+    ("/api/v1/billing", "auth"),
     ("/api/v1/items", "inventory"),
     ("/api/v1/categories", "inventory"),
     ("/api/v1/csv/", "inventory"),
@@ -43,6 +45,7 @@ ROUTE_MAP: list[tuple[str, str]] = [
     ("/api/v1/analytics", "analytics"),
     ("/api/v1/shipments", "shipping"),
     ("/api/v1/packing-lists", "shipping"),
+    ("/api/v1/whatnot", "whatnot"),
 ]
 
 

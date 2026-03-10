@@ -97,7 +97,7 @@ export function ItemFormDialog({ open, onOpenChange, item, categories }: ItemFor
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-4 space-y-4">
+          <div className="mt-6 space-y-5">
             {error && (
               <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
             )}

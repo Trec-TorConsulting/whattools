@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from "react-router";
-import { User, Users, Building } from "lucide-react";
+import { User, Users, Building, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { canManageTeam } from "@/lib/role-utils";
@@ -9,6 +9,7 @@ const TABS = [
   { label: "Profile", href: "/settings", icon: User },
   { label: "Team", href: "/settings/team", icon: Users, minRole: "admin" as const },
   { label: "Account", href: "/settings/account", icon: Building, minRole: "owner" as const },
+  { label: "Billing", href: "/settings/billing", icon: CreditCard, minRole: "owner" as const },
 ];
 
 export function SettingsLayout() {

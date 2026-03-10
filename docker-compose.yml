@@ -45,6 +45,9 @@ services:
       - JWT_REFRESH_TOKEN_EXPIRES=${JWT_REFRESH_TOKEN_EXPIRES:-604800}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PAID_PRICE_ID=${STRIPE_PAID_PRICE_ID:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
     ports:
       - "5001:5001"
     depends_on:
@@ -94,6 +97,7 @@ services:
       - SALES_SERVICE_URL=http://sales:5003
       - ANALYTICS_SERVICE_URL=http://analytics:5004
       - SHIPPING_SERVICE_URL=http://shipping:5005
+      - WHATNOT_SERVICE_URL=http://whatnot:5006
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
@@ -111,6 +115,8 @@ services:
       analytics:
         condition: service_healthy
       shipping:
+        condition: service_healthy
+      whatnot:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:5000/health')\""]
@@ -213,6 +219,56 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  whatnot:
+    build:
+      context: .
+      dockerfile: services/whatnot/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://whattools:whattools@postgres:5432/whattools
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-jwt-secret}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - WHATNOT_CLIENT_ID=${WHATNOT_CLIENT_ID:-}
+      - WHATNOT_CLIENT_SECRET=${WHATNOT_CLIENT_SECRET:-}
+      - WHATNOT_REDIRECT_URI=${WHATNOT_REDIRECT_URI:-http://localhost:3000/whatnot/callback}
+      - WHATNOT_ENCRYPTION_KEY=${WHATNOT_ENCRYPTION_KEY:-}
+      - WHATNOT_WEBHOOK_SECRET=${WHATNOT_WEBHOOK_SECRET:-}
+      - WHATNOT_USE_STAGING=${WHATNOT_USE_STAGING:-false}
+    ports:
+      - "5006:5006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:5006/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  whatnot-worker:
+    build:
+      context: .
+      dockerfile: services/whatnot/Dockerfile.worker
+    environment:
+      - DATABASE_URL=postgresql://whattools:whattools@postgres:5432/whattools
+      - CELERY_BROKER_URL=redis://redis:6379/3
+      - CELERY_RESULT_BACKEND=redis://redis:6379/3
+      - WHATNOT_CLIENT_ID=${WHATNOT_CLIENT_ID:-}
+      - WHATNOT_CLIENT_SECRET=${WHATNOT_CLIENT_SECRET:-}
+      - WHATNOT_ENCRYPTION_KEY=${WHATNOT_ENCRYPTION_KEY:-}
+      - WHATNOT_USE_STAGING=${WHATNOT_USE_STAGING:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   # --- Web UI ---
   web:

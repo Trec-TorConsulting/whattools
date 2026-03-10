@@ -54,6 +54,12 @@ class InventoryItem(BaseModel):
     quantity: Mapped[int] = mapped_column(Integer, default=1)
     status: Mapped[str] = mapped_column(String(20), default=ItemStatus.AVAILABLE, index=True)
 
+    # Whatnot integration
+    whatnot_product_id: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None, index=True, init=False)
+    whatnot_variant_id: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None, init=False)
+    whatnot_listing_id: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None, init=False)
+    image_urls: Mapped[list | None] = mapped_column(JSON, nullable=True, default=None, init=False)
+
 
 class CSVImportJob(BaseModel):
     """Tracks a CSV file import job from upload through processing."""

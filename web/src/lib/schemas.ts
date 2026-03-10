@@ -355,3 +355,71 @@ export type ShowTimeSuggestion = z.infer<typeof ShowTimeSuggestionSchema>;
 export type ExportJob = z.infer<typeof ExportJobSchema>;
 export type CreateExport = z.infer<typeof CreateExportSchema>;
 export type TeamMember = z.infer<typeof TeamMemberSchema>;
+
+// Whatnot integration schemas
+export const WhatnotStatusSchema = z.object({
+  connected: z.boolean(),
+  whatnot_username: z.string().nullable().optional(),
+  scopes: z.string().nullable().optional(),
+  last_sync_at: z.string().nullable().optional(),
+});
+
+export const SyncLogSchema = z.object({
+  id: z.string().optional(),
+  sync_type: z.string(),
+  status: z.string(),
+  started_at: z.string(),
+  completed_at: z.string().nullable().optional(),
+  items_synced: z.number(),
+  items_created: z.number(),
+  items_updated: z.number(),
+  items_failed: z.number(),
+  error_message: z.string().nullable().optional(),
+});
+
+export const SyncStatusSchema = z.object({
+  latest: z.record(z.string(), SyncLogSchema),
+  recent: z.array(SyncLogSchema),
+});
+
+export const WhatnotConnectSchema = z.object({
+  authorize_url: z.string(),
+  state: z.string(),
+});
+
+export const ProductPullResultSchema = z.object({
+  created: z.number(),
+  updated: z.number(),
+  total: z.number(),
+});
+
+export const WhatnotListingSchema = z.object({
+  id: z.string(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  price: z.number().optional(),
+  status: z.string().optional(),
+});
+
+export const OrderTrackingSchema = z.object({
+  carrier: z.enum(["USPS", "UPS", "FEDEX"]),
+  tracking_number: z.string().min(1, "Tracking number is required"),
+});
+
+// Billing schemas
+export const SubscriptionStatusSchema = z.object({
+  plan_tier: z.enum(["free", "paid"]),
+  subscription_status: z.string().nullable().optional(),
+  stripe_customer_id: z.string().nullable().optional(),
+  inventory_item_limit: z.number(),
+  team_member_limit: z.number(),
+});
+
+export type WhatnotStatus = z.infer<typeof WhatnotStatusSchema>;
+export type SyncLog = z.infer<typeof SyncLogSchema>;
+export type SyncStatus = z.infer<typeof SyncStatusSchema>;
+export type WhatnotConnect = z.infer<typeof WhatnotConnectSchema>;
+export type ProductPullResult = z.infer<typeof ProductPullResultSchema>;
+export type WhatnotListing = z.infer<typeof WhatnotListingSchema>;
+export type OrderTracking = z.infer<typeof OrderTrackingSchema>;
+export type SubscriptionStatus = z.infer<typeof SubscriptionStatusSchema>;

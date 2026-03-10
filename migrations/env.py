@@ -11,6 +11,9 @@ from services.shared.models import Base  # noqa: F401
 from services.shared.audit import AuditLog  # noqa: F401
 from services.auth.models.models import Account, User, RefreshToken, TeamInvite  # noqa: F401
 from services.inventory.models.models import Category, InventoryItem, CSVImportJob  # noqa: F401
+from services.sales.models.models import Show, Order  # noqa: F401
+from services.shipping.models.models import Shipment  # noqa: F401
+from services.whatnot.models import WhatnotCredential, SyncLog, WebhookEvent  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

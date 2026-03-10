@@ -3,7 +3,7 @@
 import uuid
 from enum import StrEnum
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, Uuid
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from services.shared.models import BaseModel
@@ -64,6 +64,9 @@ class Show(BaseModel):
     recurrence_weeks: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
     recurrence_group_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True, default=None, index=True)
 
+    # Whatnot integration
+    whatnot_livestream_id: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None, index=True, init=False)
+
 
 class Order(BaseModel):
     """A single item sale within a show."""
@@ -81,3 +84,10 @@ class Order(BaseModel):
     buyer_username: Mapped[str] = mapped_column(String(255), default="")
     status: Mapped[str] = mapped_column(String(20), default=OrderStatus.PENDING, index=True)
     notes: Mapped[str] = mapped_column(Text, default="")
+
+    # Whatnot integration
+    whatnot_order_id: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None, index=True, init=False)
+    whatnot_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None, init=False)
+    sales_channel: Mapped[str | None] = mapped_column(String(50), nullable=True, default=None, init=False)
+    is_giveaway: Mapped[bool] = mapped_column(Boolean, default=False, init=False)
+    is_pickup: Mapped[bool] = mapped_column(Boolean, default=False, init=False)

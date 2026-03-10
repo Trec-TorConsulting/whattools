@@ -24,6 +24,8 @@ dependencies = [
     "python-dotenv>=1.0,<2",
     "reportlab>=4.0,<5",
     "matplotlib>=3.9,<4",
+    "cryptography>=44.0,<45",
+    "stripe>=11.0,<12",
 ]
 
 [project.optional-dependencies]

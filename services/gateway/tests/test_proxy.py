@@ -62,9 +62,17 @@ class TestResolveService:
     def test_packing_lists_routes(self) -> None:
         assert resolve_service(f"/api/v1/packing-lists/{uuid.uuid4()}") == "shipping"
 
+    def test_billing_routes(self) -> None:
+        assert resolve_service("/api/v1/billing/subscription") == "auth"
+        assert resolve_service("/api/v1/billing/checkout") == "auth"
+
+    def test_whatnot_routes(self) -> None:
+        assert resolve_service("/api/v1/whatnot/status") == "whatnot"
+        assert resolve_service("/api/v1/whatnot/connect") == "whatnot"
+        assert resolve_service("/api/v1/whatnot/sync/now") == "whatnot"
+
     def test_unknown_route(self) -> None:
         assert resolve_service("/api/v1/unknown") is None
-        assert resolve_service("/api/v1/billing") is None
 
     def test_missing_version(self) -> None:
         assert resolve_service("/items") is None

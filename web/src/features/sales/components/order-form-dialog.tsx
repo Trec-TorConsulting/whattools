@@ -98,7 +98,7 @@ export function OrderFormDialog({ open, onOpenChange, order, showId }: OrderForm
               {isEditing ? "Update order details" : "Record a new sale"}
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4 space-y-4">
+          <div className="mt-6 space-y-5">
             {error && <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
 
             {!isEditing && (

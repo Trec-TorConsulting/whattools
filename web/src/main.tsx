@@ -28,6 +28,10 @@ import { SettingsLayout } from "@/features/settings/pages/settings-layout";
 import { ProfileSettingsPage } from "@/features/settings/pages/profile-settings";
 import { TeamSettingsPage } from "@/features/settings/pages/team-settings";
 import { AccountSettingsPage } from "@/features/settings/pages/account-settings";
+import { WhatnotDashboardPage } from "@/features/whatnot/pages/whatnot-dashboard";
+import { WhatnotCallbackPage } from "@/features/whatnot/pages/whatnot-callback";
+import { WhatnotListingsPage } from "@/features/whatnot/pages/whatnot-listings";
+import { BillingPage } from "@/features/billing/pages/billing";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -79,11 +83,19 @@ function App() {
                   <Route path="/analytics/exports" element={<ExportsPage />} />
                 </Route>
 
+                {/* Whatnot — admin+ */}
+                <Route element={<RoleRoute roles={["admin", "owner"]} />}>
+                  <Route path="/whatnot" element={<WhatnotDashboardPage />} />
+                  <Route path="/whatnot/callback" element={<WhatnotCallbackPage />} />
+                  <Route path="/whatnot/listings" element={<WhatnotListingsPage />} />
+                </Route>
+
                 {/* Settings */}
                 <Route path="/settings" element={<SettingsLayout />}>
                   <Route index element={<ProfileSettingsPage />} />
                   <Route path="team" element={<TeamSettingsPage />} />
                   <Route path="account" element={<AccountSettingsPage />} />
+                  <Route path="billing" element={<BillingPage />} />
                 </Route>
               </Route>
             </Route>

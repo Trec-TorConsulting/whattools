@@ -34,6 +34,10 @@ class Account(BaseModel):
     name: Mapped[str] = mapped_column(String(255))
     plan_tier: Mapped[str] = mapped_column(String(20), default=PlanTier.FREE)
 
+    # Stripe billing
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None, init=False)
+    subscription_status: Mapped[str | None] = mapped_column(String(50), nullable=True, default=None, init=False)
+
     @property
     def team_member_limit(self) -> int:
         """Maximum number of team members allowed for this plan."""

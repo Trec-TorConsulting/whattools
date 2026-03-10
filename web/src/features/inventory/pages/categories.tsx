@@ -36,7 +36,7 @@ export function CategoriesPage() {
   });
 
   const categories =
-    (data?.data as Record<string, unknown>)?.categories as Category[] ?? [];
+    (data?.data as unknown as Record<string, unknown>)?.categories as Category[] ?? [];
 
   const createMutation = useMutation({
     mutationFn: (catName: string) =>
@@ -157,7 +157,7 @@ export function CategoriesPage() {
             <DialogHeader>
               <DialogTitle>{editCategory ? "Edit Category" : "New Category"}</DialogTitle>
             </DialogHeader>
-            <div className="mt-4 space-y-2">
+            <div className="mt-6 space-y-3">
               <Label htmlFor="cat-name">Name</Label>
               <Input
                 id="cat-name"

@@ -62,7 +62,7 @@ export function ItemsListPage() {
   const itemsPayload = data?.data as Record<string, unknown> | undefined;
   const items = (itemsPayload?.items as Item[]) ?? [];
   const categories: Category[] =
-    (categoriesData?.data as Record<string, unknown>)?.categories as Category[] ?? [];
+    (categoriesData?.data as unknown as Record<string, unknown>)?.categories as Category[] ?? [];
   const hasMore = !!itemsPayload?.next_cursor;
   const nextCursor = itemsPayload?.next_cursor as string | undefined;
 

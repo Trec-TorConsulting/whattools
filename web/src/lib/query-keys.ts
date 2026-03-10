@@ -71,4 +71,19 @@ export const queryKeys = {
     list: () => ["exports", "list"] as const,
     detail: (id: string) => ["exports", "detail", id] as const,
   },
+
+  // Whatnot
+  whatnot: {
+    status: ["whatnot", "status"] as const,
+    syncStatus: ["whatnot", "sync-status"] as const,
+    listings: (filters?: Record<string, unknown>) => ["whatnot", "listings", filters] as const,
+    listing: (id: string) => ["whatnot", "listing", id] as const,
+    taxonomy: ["whatnot", "taxonomy"] as const,
+    taxonomyNode: (id: string) => ["whatnot", "taxonomy", id] as const,
+  },
+
+  // Billing
+  billing: {
+    subscription: ["billing", "subscription"] as const,
+  },
 } as const;
