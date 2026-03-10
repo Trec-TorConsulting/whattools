@@ -142,6 +142,14 @@ whattools/
 9. **Logging & Monitoring:** Structured JSON logging to stdout, security events logged, no sensitive data in logs. **Grafana Loki** for log aggregation (lightweight, Kubernetes-native, pairs with Grafana dashboards)
 10. **SSRF:** No user-controlled URLs passed to backend HTTP calls without allowlist validation
 
+### Secrets & Sensitive Data Policy
+- **NEVER commit secrets:** API keys, tokens, encryption keys, passwords, private keys, or any sensitive credentials must NEVER appear in source code, configuration files, or git history — not even as "dev defaults"
+- **Environment variables only:** All secrets are injected via environment variables or secret management systems (Kubernetes Secrets, `.env` files excluded from git)
+- **No hardcoded defaults for secrets:** Config files (docker-compose.yml, Helm values, etc.) must use empty defaults for secret values — developers set real values locally via `.env`
+- **Log sanitization:** Never log tokens, passwords, API keys, encryption keys, or PII — mask or omit entirely
+- **Git pre-commit awareness:** Before every commit, verify no sensitive data is being staged — treat any accidental leak as a security incident requiring key rotation
+- **`.gitignore` enforcement:** `.env`, `*.key`, `secrets.yaml`, and similar files must always be gitignored
+
 ### Testing Strategy
 - **Target:** 100% code coverage from the start (enforced in CI)
 - **Framework:** pytest
