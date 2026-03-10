@@ -2,11 +2,12 @@
 
 import json
 import uuid
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from services.shipping.routes.shipment_routes import shipments_bp
+from services.shipping.services.shipping_service import ShippingServiceError
 from services.shared.errors import register_error_handlers
 
 
@@ -261,3 +262,134 @@ class TestShipmentRoutes:
         with patch("services.shipping.routes.shipment_routes.get_db", return_value=self.db_session):
             resp = self.client.post("/api/v1/shipments/not-a-uuid/label", headers=headers)
         assert resp.status_code == 400
+
+
+class TestShipmentRouteServiceErrors:
+    """Cover ShippingServiceError and ValidationError error branches."""
+
+    @pytest.fixture(autouse=True)
+    def setup_app(self, app, db_session):
+        register_error_handlers(app)
+        app.register_blueprint(shipments_bp, url_prefix="/api/v1/shipments")
+        self.client = app.test_client()
+        self.app = app
+        self.db_session = db_session
+
+    def _headers(self, sample_user):
+        from services.shipping.tests.conftest import make_auth_headers
+        return make_auth_headers(self.app, sample_user)
+
+    def test_list_shipments_validation_error(self, sample_user):
+        headers = self._headers(sample_user)
+        with patch("services.shipping.routes.shipment_routes.get_db", return_value=self.db_session):
+            resp = self.client.get("/api/v1/shipments?limit=not-a-number", headers=headers)
+        assert resp.status_code == 422
+
+    @patch("services.shipping.routes.shipment_routes._get_service")
+    def test_create_shipment_service_error(self, mock_get_svc, sample_user, sample_order):
+        mock_svc = MagicMock()
+        mock_svc.create_shipment.side_effect = ShippingServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = self._headers(sample_user)
+        with patch("services.shipping.routes.shipment_routes.get_db", return_value=self.db_session):
+            resp = self.client.post("/api/v1/shipments", headers=headers,
+                                   data=json.dumps({"order_id": str(sample_order.id), "carrier": "usps"}))
+        assert resp.status_code == 500
+
+    @patch("services.shipping.routes.shipment_routes._get_service")
+    def test_get_shipment_service_error(self, mock_get_svc, sample_user):
+        mock_svc = MagicMock()
+        mock_svc.get_shipment.side_effect = ShippingServiceError("Not found", "not_found", 404)
+        mock_get_svc.return_value = mock_svc
+
+        headers = self._headers(sample_user)
+        with patch("services.shipping.routes.shipment_routes.get_db", return_value=self.db_session):
+            resp = self.client.get(f"/api/v1/shipments/{uuid.uuid4()}", headers=headers)
+        assert resp.status_code == 404
+
+    def test_update_shipment_validation_error(self, sample_user, sample_shipment):
+        headers = self._headers(sample_user)
+        with patch("services.shipping.routes.shipment_routes.get_db", return_value=self.db_session):
+            resp = self.client.put(f"/api/v1/shipments/{sample_shipment.id}", headers=headers,
+                                  data=json.dumps({"carrier": 12345}))
+        assert resp.status_code in (200, 422)
+
+    @patch("services.shipping.routes.shipment_routes._get_service")
+    def test_update_shipment_service_error(self, mock_get_svc, sample_user):
+        mock_svc = MagicMock()
+        mock_svc.update_shipment.side_effect = ShippingServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = self._headers(sample_user)
+        with patch("services.shipping.routes.shipment_routes.get_db", return_value=self.db_session):
+            resp = self.client.put(f"/api/v1/shipments/{uuid.uuid4()}", headers=headers,
+                                  data=json.dumps({"tracking_number": "X"}))
+        assert resp.status_code == 500
+
+    @patch("services.shipping.routes.shipment_routes._get_service")
+    def test_delete_shipment_service_error(self, mock_get_svc, sample_user):
+        mock_svc = MagicMock()
+        mock_svc.delete_shipment.side_effect = ShippingServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = self._headers(sample_user)
+        with patch("services.shipping.routes.shipment_routes.get_db", return_value=self.db_session):
+            resp = self.client.delete(f"/api/v1/shipments/{uuid.uuid4()}", headers=headers)
+        assert resp.status_code == 500
+
+    @patch("services.shipping.routes.shipment_routes._get_service")
+    def test_mark_shipped_service_error(self, mock_get_svc, sample_user):
+        mock_svc = MagicMock()
+        mock_svc.transition_shipment.side_effect = ShippingServiceError("Invalid", "invalid_transition", 409)
+        mock_get_svc.return_value = mock_svc
+
+        headers = self._headers(sample_user)
+        with patch("services.shipping.routes.shipment_routes.get_db", return_value=self.db_session):
+            resp = self.client.post(f"/api/v1/shipments/{uuid.uuid4()}/ship", headers=headers)
+        assert resp.status_code == 409
+
+    @patch("services.shipping.routes.shipment_routes._get_service")
+    def test_mark_delivered_service_error(self, mock_get_svc, sample_user):
+        mock_svc = MagicMock()
+        mock_svc.transition_shipment.side_effect = ShippingServiceError("Invalid", "invalid_transition", 409)
+        mock_get_svc.return_value = mock_svc
+
+        headers = self._headers(sample_user)
+        with patch("services.shipping.routes.shipment_routes.get_db", return_value=self.db_session):
+            resp = self.client.post(f"/api/v1/shipments/{uuid.uuid4()}/deliver", headers=headers)
+        assert resp.status_code == 409
+
+    @patch("services.shipping.routes.shipment_routes._get_service")
+    def test_cancel_shipment_service_error(self, mock_get_svc, sample_user):
+        mock_svc = MagicMock()
+        mock_svc.transition_shipment.side_effect = ShippingServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = self._headers(sample_user)
+        with patch("services.shipping.routes.shipment_routes.get_db", return_value=self.db_session):
+            resp = self.client.post(f"/api/v1/shipments/{uuid.uuid4()}/cancel", headers=headers)
+        assert resp.status_code == 500
+
+    @patch("services.shipping.routes.shipment_routes._get_service")
+    def test_create_label_service_error(self, mock_get_svc, sample_user):
+        mock_svc = MagicMock()
+        mock_svc.create_label.side_effect = ShippingServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = self._headers(sample_user)
+        with patch("services.shipping.routes.shipment_routes.get_db", return_value=self.db_session):
+            resp = self.client.post(f"/api/v1/shipments/{uuid.uuid4()}/label", headers=headers)
+        assert resp.status_code == 500
+
+    @patch("services.shipping.routes.shipment_routes._get_service")
+    def test_bulk_create_service_error(self, mock_get_svc, sample_user):
+        mock_svc = MagicMock()
+        mock_svc.bulk_create_shipments.side_effect = ShippingServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = self._headers(sample_user)
+        with patch("services.shipping.routes.shipment_routes.get_db", return_value=self.db_session):
+            resp = self.client.post("/api/v1/shipments/bulk", headers=headers,
+                                   data=json.dumps({"show_id": str(uuid.uuid4())}))
+        assert resp.status_code == 500

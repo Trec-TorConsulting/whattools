@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from services.sales.routes.show_routes import shows_bp
 from services.sales.routes.order_routes import orders_bp
+from services.sales.services.sales_service import SalesServiceError
 from services.sales.tests.conftest import make_auth_headers
 from services.shared.errors import register_error_handlers
 
@@ -177,3 +178,202 @@ class TestOrderRoutes:
     def test_no_auth(self, client) -> None:  # type: ignore[no-untyped-def]
         resp = client.get("/api/v1/orders")
         assert resp.status_code == 401
+
+
+class TestShowRouteErrors:
+    """Cover ValueError, ValidationError, and SalesServiceError error branches in show routes."""
+
+    def test_update_show_invalid_id(self, client, app, sample_user) -> None:
+        headers = make_auth_headers(app, sample_user)
+        resp = client.put("/api/v1/shows/bad-uuid", headers=headers, json={"title": "X"})
+        assert resp.status_code == 400
+
+    def test_update_show_validation_error(self, client, app, sample_user, sample_show) -> None:
+        headers = make_auth_headers(app, sample_user)
+        resp = client.put(f"/api/v1/shows/{sample_show.id}", headers=headers, json={"scheduled_at": "not-a-date"})
+        assert resp.status_code == 422
+
+    def test_delete_show_invalid_id(self, client, app, sample_user) -> None:
+        headers = make_auth_headers(app, sample_user)
+        resp = client.delete("/api/v1/shows/bad-uuid", headers=headers)
+        assert resp.status_code == 400
+
+    def test_start_show_invalid_id(self, client, app, sample_user) -> None:
+        headers = make_auth_headers(app, sample_user)
+        resp = client.post("/api/v1/shows/bad-uuid/start", headers=headers)
+        assert resp.status_code == 400
+
+    def test_cancel_show_invalid_id(self, client, app, sample_user) -> None:
+        headers = make_auth_headers(app, sample_user)
+        resp = client.post("/api/v1/shows/bad-uuid/cancel", headers=headers)
+        assert resp.status_code == 400
+
+    def test_show_orders_invalid_id(self, client, app, sample_user) -> None:
+        headers = make_auth_headers(app, sample_user)
+        resp = client.get("/api/v1/shows/bad-uuid/orders", headers=headers)
+        assert resp.status_code == 400
+
+    def test_list_shows_validation_error(self, client, app, sample_user) -> None:
+        headers = make_auth_headers(app, sample_user)
+        resp = client.get("/api/v1/shows?limit=not-a-number", headers=headers)
+        assert resp.status_code == 422
+
+    @patch("services.sales.routes.show_routes._get_service")
+    def test_create_show_service_error(self, mock_get_svc, client, app, sample_user) -> None:
+        mock_svc = MagicMock()
+        mock_svc.create_show.side_effect = SalesServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = make_auth_headers(app, sample_user)
+        resp = client.post("/api/v1/shows", headers=headers, json={"title": "My Show"})
+        assert resp.status_code == 500
+
+    @patch("services.sales.routes.show_routes._get_service")
+    def test_get_show_service_error(self, mock_get_svc, client, app, sample_user) -> None:
+        mock_svc = MagicMock()
+        mock_svc.get_show.side_effect = SalesServiceError("Not found", "not_found", 404)
+        mock_get_svc.return_value = mock_svc
+
+        headers = make_auth_headers(app, sample_user)
+        resp = client.get(f"/api/v1/shows/{uuid.uuid4()}", headers=headers)
+        assert resp.status_code == 404
+
+    @patch("services.sales.routes.show_routes._get_service")
+    def test_update_show_service_error(self, mock_get_svc, client, app, sample_user) -> None:
+        mock_svc = MagicMock()
+        mock_svc.update_show.side_effect = SalesServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = make_auth_headers(app, sample_user)
+        resp = client.put(f"/api/v1/shows/{uuid.uuid4()}", headers=headers, json={"title": "X"})
+        assert resp.status_code == 500
+
+    @patch("services.sales.routes.show_routes._get_service")
+    def test_delete_show_service_error(self, mock_get_svc, client, app, sample_user) -> None:
+        mock_svc = MagicMock()
+        mock_svc.delete_show.side_effect = SalesServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = make_auth_headers(app, sample_user)
+        resp = client.delete(f"/api/v1/shows/{uuid.uuid4()}", headers=headers)
+        assert resp.status_code == 500
+
+    @patch("services.sales.routes.show_routes._get_service")
+    def test_start_show_service_error(self, mock_get_svc, client, app, sample_user) -> None:
+        mock_svc = MagicMock()
+        mock_svc.start_show.side_effect = SalesServiceError("Invalid", "invalid_transition", 409)
+        mock_get_svc.return_value = mock_svc
+
+        headers = make_auth_headers(app, sample_user)
+        resp = client.post(f"/api/v1/shows/{uuid.uuid4()}/start", headers=headers)
+        assert resp.status_code == 409
+
+    @patch("services.sales.routes.show_routes._get_service")
+    def test_cancel_show_service_error(self, mock_get_svc, client, app, sample_user) -> None:
+        mock_svc = MagicMock()
+        mock_svc.cancel_show.side_effect = SalesServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = make_auth_headers(app, sample_user)
+        resp = client.post(f"/api/v1/shows/{uuid.uuid4()}/cancel", headers=headers)
+        assert resp.status_code == 500
+
+    @patch("services.sales.routes.show_routes._get_service")
+    def test_show_orders_service_error(self, mock_get_svc, client, app, sample_user) -> None:
+        mock_svc = MagicMock()
+        mock_svc.list_show_orders.side_effect = SalesServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = make_auth_headers(app, sample_user)
+        resp = client.get(f"/api/v1/shows/{uuid.uuid4()}/orders", headers=headers)
+        assert resp.status_code == 500
+
+
+class TestOrderRouteErrors:
+    """Cover ValueError, ValidationError, and SalesServiceError error branches in order routes."""
+
+    def test_update_order_invalid_id(self, client, app, sample_user) -> None:
+        headers = make_auth_headers(app, sample_user)
+        resp = client.put("/api/v1/orders/bad-uuid", headers=headers, json={"sale_price": 10})
+        assert resp.status_code == 400
+
+    def test_update_order_validation_error(self, client, app, sample_user, sample_order) -> None:
+        headers = make_auth_headers(app, sample_user)
+        resp = client.put(f"/api/v1/orders/{sample_order.id}", headers=headers, json={"sale_price": "not-a-number"})
+        assert resp.status_code == 422
+
+    def test_delete_order_invalid_id(self, client, app, sample_user) -> None:
+        headers = make_auth_headers(app, sample_user)
+        resp = client.delete("/api/v1/orders/bad-uuid", headers=headers)
+        assert resp.status_code == 400
+
+    def test_cancel_order_invalid_id(self, client, app, sample_user) -> None:
+        headers = make_auth_headers(app, sample_user)
+        resp = client.post("/api/v1/orders/bad-uuid/cancel", headers=headers)
+        assert resp.status_code == 400
+
+    def test_restore_order_invalid_id(self, client, app, sample_user) -> None:
+        headers = make_auth_headers(app, sample_user)
+        resp = client.post("/api/v1/orders/bad-uuid/restore", headers=headers)
+        assert resp.status_code == 400
+
+    def test_list_orders_validation_error(self, client, app, sample_user) -> None:
+        headers = make_auth_headers(app, sample_user)
+        resp = client.get("/api/v1/orders?limit=not-a-number", headers=headers)
+        assert resp.status_code == 422
+
+    @patch("services.sales.routes.order_routes._get_service")
+    def test_create_order_service_error(self, mock_get_svc, client, app, sample_user) -> None:
+        mock_svc = MagicMock()
+        mock_svc.create_order.side_effect = SalesServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = make_auth_headers(app, sample_user)
+        resp = client.post("/api/v1/orders", headers=headers, json={
+            "show_id": str(uuid.uuid4()),
+            "inventory_item_id": str(uuid.uuid4()),
+            "sale_price": 25.0,
+            "platform_fees": 2.50,
+            "shipping_cost": 5.0,
+        })
+        assert resp.status_code == 500
+
+    @patch("services.sales.routes.order_routes._get_service")
+    def test_get_order_service_error(self, mock_get_svc, client, app, sample_user) -> None:
+        mock_svc = MagicMock()
+        mock_svc.get_order.side_effect = SalesServiceError("Not found", "not_found", 404)
+        mock_get_svc.return_value = mock_svc
+
+        headers = make_auth_headers(app, sample_user)
+        resp = client.get(f"/api/v1/orders/{uuid.uuid4()}", headers=headers)
+        assert resp.status_code == 404
+
+    @patch("services.sales.routes.order_routes._get_service")
+    def test_update_order_service_error(self, mock_get_svc, client, app, sample_user) -> None:
+        mock_svc = MagicMock()
+        mock_svc.update_order.side_effect = SalesServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = make_auth_headers(app, sample_user)
+        resp = client.put(f"/api/v1/orders/{uuid.uuid4()}", headers=headers, json={"sale_price": 30.0})
+        assert resp.status_code == 500
+
+    @patch("services.sales.routes.order_routes._get_service")
+    def test_delete_order_service_error(self, mock_get_svc, client, app, sample_user) -> None:
+        mock_svc = MagicMock()
+        mock_svc.delete_order.side_effect = SalesServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = make_auth_headers(app, sample_user)
+        resp = client.delete(f"/api/v1/orders/{uuid.uuid4()}", headers=headers)
+        assert resp.status_code == 500
+
+    @patch("services.sales.routes.order_routes._get_service")
+    def test_restore_order_service_error(self, mock_get_svc, client, app, sample_user) -> None:
+        mock_svc = MagicMock()
+        mock_svc.restore_order.side_effect = SalesServiceError("Fail", "error", 500)
+        mock_get_svc.return_value = mock_svc
+
+        headers = make_auth_headers(app, sample_user)
+        resp = client.post(f"/api/v1/orders/{uuid.uuid4()}/restore", headers=headers)
+        assert resp.status_code == 500
