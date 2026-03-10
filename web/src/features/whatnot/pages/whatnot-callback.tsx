@@ -59,8 +59,8 @@ export function WhatnotCallbackPage() {
           {status === "error" && <XCircle className="h-10 w-10 text-destructive" />}
 
           {status !== "loading" && (
-            <Button onClick={() => navigate("/whatnot")} className="mt-2">
-              Go to Whatnot Dashboard
+            <Button onClick={() => navigate("/settings/whatnot")} className="mt-2">
+              Go to Whatnot Settings
             </Button>
           )}
         </CardContent>

@@ -69,7 +69,7 @@ describe("WhatnotCallbackPage", () => {
       expect(screen.getByText("Connected!")).toBeInTheDocument();
     });
     expect(screen.getByText(/connected successfully/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /go to whatnot dashboard/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /go to whatnot settings/i })).toBeInTheDocument();
   });
 
   it("shows error when API call fails", async () => {

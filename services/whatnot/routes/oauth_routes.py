@@ -40,7 +40,7 @@ def connect():  # type: ignore[no-untyped-def]
     session["whatnot_oauth_state"] = result["state"]
 
     return success_response({
-        "url": result["url"],
+        "authorize_url": result["url"],
     })
 
 

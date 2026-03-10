@@ -31,6 +31,7 @@ import { AccountSettingsPage } from "@/features/settings/pages/account-settings"
 import { WhatnotDashboardPage } from "@/features/whatnot/pages/whatnot-dashboard";
 import { WhatnotCallbackPage } from "@/features/whatnot/pages/whatnot-callback";
 import { WhatnotListingsPage } from "@/features/whatnot/pages/whatnot-listings";
+import { WhatnotSettingsPage } from "@/features/settings/pages/whatnot-settings";
 import { BillingPage } from "@/features/billing/pages/billing";
 
 const queryClient = new QueryClient({
@@ -94,6 +95,7 @@ function App() {
                 <Route path="/settings" element={<SettingsLayout />}>
                   <Route index element={<ProfileSettingsPage />} />
                   <Route path="team" element={<TeamSettingsPage />} />
+                  <Route path="whatnot" element={<WhatnotSettingsPage />} />
                   <Route path="account" element={<AccountSettingsPage />} />
                   <Route path="billing" element={<BillingPage />} />
                 </Route>
