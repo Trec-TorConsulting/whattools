@@ -15,11 +15,12 @@ import {
   Sun,
   Monitor,
   Link2,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
-import { canAccessSales } from "@/lib/role-utils";
+import { canAccessSales, isPlatformAdmin } from "@/lib/role-utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -138,6 +139,28 @@ export function AppShell() {
                 </Tooltip>
               );
             })}
+
+            {/* Admin Portal link for platform admins */}
+            {isPlatformAdmin(user) && (
+              <>
+                <div className="my-2 h-px bg-sidebar-border" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/admin"
+                      onClick={() => setSidebarOpen(false)}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/10"
+                    >
+                      <Shield className="h-5 w-5 shrink-0" />
+                      Admin Portal
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="lg:hidden">
+                    Admin Portal
+                  </TooltipContent>
+                </Tooltip>
+              </>
+            )}
           </nav>
 
           {/* User section */}

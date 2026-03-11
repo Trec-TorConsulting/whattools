@@ -33,6 +33,7 @@ def init_service_urls() -> dict[str, str]:
 
 # Route prefix → service name mapping
 ROUTE_MAP: list[tuple[str, str]] = [
+    ("/api/v1/admin", "auth"),
     ("/api/v1/auth/", "auth"),
     ("/api/v1/account", "auth"),
     ("/api/v1/users/", "auth"),

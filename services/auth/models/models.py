@@ -38,6 +38,9 @@ class Account(BaseModel):
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None, init=False)
     subscription_status: Mapped[str | None] = mapped_column(String(50), nullable=True, default=None, init=False)
 
+    # Platform admin suspension
+    is_suspended: Mapped[bool] = mapped_column(Boolean, default=False, init=False)
+
     @property
     def team_member_limit(self) -> int:
         """Maximum number of team members allowed for this plan."""
@@ -68,6 +71,7 @@ class User(BaseModel):
     role: Mapped[str] = mapped_column(String(20), default=TeamRole.MEMBER)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_platform_admin: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Account lockout
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0, init=False)

@@ -46,10 +46,12 @@ def create_app(*, config_overrides: dict[str, Any] | None = None) -> Flask:
     from services.auth.routes.account_routes import account_bp
     from services.auth.routes.profile_routes import profile_bp
     from services.auth.routes.billing_routes import billing_bp
+    from services.auth.routes.admin_routes import admin_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/v1/auth")
     app.register_blueprint(account_bp, url_prefix="/api/v1")
     app.register_blueprint(profile_bp, url_prefix="/api/v1")
     app.register_blueprint(billing_bp, url_prefix="/api/v1/billing")
+    app.register_blueprint(admin_bp, url_prefix="/api/v1/admin")
 
     return app

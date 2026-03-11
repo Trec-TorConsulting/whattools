@@ -171,7 +171,11 @@ class AuthService:
 
         # Create JWTs
         identity = str(user.id)
-        additional_claims = {"account_id": str(user.account_id), "role": user.role}
+        additional_claims = {
+            "account_id": str(user.account_id),
+            "role": user.role,
+            "is_platform_admin": user.is_platform_admin,
+        }
         access_token = create_access_token(identity=identity, additional_claims=additional_claims)
         raw_refresh = create_refresh_token(identity=identity, additional_claims=additional_claims)
 
@@ -183,6 +187,17 @@ class AuthService:
             "access_token": access_token,
             "refresh_token": raw_refresh,
             "token_type": "bearer",
+            "user": {
+                "id": str(user.id),
+                "email": user.email,
+                "name": user.name,
+                "role": user.role,
+                "account_id": str(user.account_id),
+                "is_verified": user.is_verified,
+                "is_active": user.is_active,
+                "is_platform_admin": user.is_platform_admin,
+                "created_at": user.created_at.isoformat(),
+            },
         }
 
     # ── Token Refresh ───────────────────────────────────────────────
@@ -208,7 +223,11 @@ class AuthService:
 
         # Issue new tokens
         identity = str(user.id)
-        additional_claims = {"account_id": str(user.account_id), "role": user.role}
+        additional_claims = {
+            "account_id": str(user.account_id),
+            "role": user.role,
+            "is_platform_admin": user.is_platform_admin,
+        }
         access_token = create_access_token(identity=identity, additional_claims=additional_claims)
         raw_refresh = create_refresh_token(identity=identity, additional_claims=additional_claims)
 

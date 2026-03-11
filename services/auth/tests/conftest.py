@@ -37,6 +37,7 @@ def db_engine() -> Any:
 
     # Import models to register them with Base metadata
     from services.auth.models import models as _  # noqa: F811
+    from services.auth.models import admin_audit_log as _audit  # noqa: F811
 
     Base.metadata.create_all(engine)
     return engine
@@ -156,11 +157,43 @@ def sample_member(db_session: Session, sample_account: Account) -> User:
     return user
 
 
+@pytest.fixture()
+def platform_admin_account(db_session: Session) -> Account:
+    """Create a platform admin account."""
+    account = Account(name="WhatTools Platform", plan_tier=PlanTier.PAID)
+    db_session.add(account)
+    db_session.flush()
+    return account
+
+
+@pytest.fixture()
+def platform_admin(db_session: Session, platform_admin_account: Account) -> User:
+    """Create a platform admin user."""
+    user = User(
+        account_id=platform_admin_account.id,
+        email="superadmin@whattools.com",
+        password_hash="",
+        name="Super Admin",
+        role=TeamRole.OWNER,
+        is_verified=True,
+        is_active=True,
+        is_platform_admin=True,
+    )
+    user.set_password("Admin123!Change")
+    db_session.add(user)
+    db_session.flush()
+    return user
+
+
 def make_auth_headers(app: Flask, user: User) -> dict[str, str]:
     """Generate Authorization headers with a JWT for the given user."""
     with app.app_context():
         token = create_access_token(
             identity=str(user.id),
-            additional_claims={"account_id": str(user.account_id), "role": user.role},
+            additional_claims={
+                "account_id": str(user.account_id),
+                "role": user.role,
+                "is_platform_admin": user.is_platform_admin,
+            },
         )
     return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}

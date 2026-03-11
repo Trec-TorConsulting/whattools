@@ -7,6 +7,7 @@ import { AuthProvider } from "@/lib/auth";
 import { AppShell } from "@/components/app-shell";
 import { ProtectedRoute } from "@/routes/protected-route";
 import { RoleRoute } from "@/routes/role-route";
+import { AdminRoute } from "@/routes/admin-route";
 import "@/globals.css";
 
 // Lazy load pages
@@ -34,6 +35,15 @@ import { WhatnotListingsPage } from "@/features/whatnot/pages/whatnot-listings";
 import { WhatnotSettingsPage } from "@/features/settings/pages/whatnot-settings";
 import { BillingPage } from "@/features/billing/pages/billing";
 
+// Admin pages
+import { AdminShell } from "@/features/admin/components/admin-shell";
+import { AdminDashboardPage } from "@/features/admin/pages/admin-dashboard";
+import { AdminAccountsPage } from "@/features/admin/pages/admin-accounts";
+import { AdminAccountDetailPage } from "@/features/admin/pages/admin-account-detail";
+import { AdminUsersPage } from "@/features/admin/pages/admin-users";
+import { AdminAuditLogsPage } from "@/features/admin/pages/admin-audit-logs";
+import { ImpersonationBanner } from "@/features/admin/components/impersonation-banner";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -58,6 +68,17 @@ function App() {
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
+              {/* Admin Portal */}
+              <Route element={<AdminRoute />}>
+                <Route element={<AdminShell />}>
+                  <Route path="/admin" element={<AdminDashboardPage />} />
+                  <Route path="/admin/accounts" element={<AdminAccountsPage />} />
+                  <Route path="/admin/accounts/:id" element={<AdminAccountDetailPage />} />
+                  <Route path="/admin/users" element={<AdminUsersPage />} />
+                  <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
+                </Route>
+              </Route>
+
               <Route element={<AppShell />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
 
@@ -105,6 +126,7 @@ function App() {
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
+          <ImpersonationBanner />
         </BrowserRouter>
         <Toaster position="top-right" richColors closeButton />
       </AuthProvider>

@@ -36,6 +36,24 @@ def seed_database(db: Session) -> None:
         print("Seed data already exists — skipping.")
         return
 
+    # --- Platform Admin Account ---
+    admin_account = Account(name="WhatTools Platform", plan_tier=PlanTier.PAID)
+    db.add(admin_account)
+    db.flush()
+
+    admin_password_hash = bcrypt.hashpw(b"Admin123!Change", bcrypt.gensalt()).decode()
+    platform_admin = User(
+        account_id=admin_account.id,
+        email="admin@whattools.com",
+        password_hash=admin_password_hash,
+        name="Platform Admin",
+        role=TeamRole.OWNER,
+        is_verified=True,
+        is_active=True,
+        is_platform_admin=True,
+    )
+    db.add(platform_admin)
+
     # --- Test Account ---
     account = Account(name="Demo Seller Shop", plan_tier=PlanTier.FREE)
     db.add(account)
@@ -79,6 +97,8 @@ def seed_database(db: Session) -> None:
 
     db.commit()
     print(f"Seed data created successfully:")
+    print(f"  ⚠️  PLATFORM ADMIN (change password immediately!):")
+    print(f"  Admin:   {platform_admin.email} / Admin123!Change")
     print(f"  Account: {account.name} (id: {account.id})")
     print(f"  Owner:   {owner.email} / Password123!")
     print(f"  Member:  {member.email} / Member123!")

@@ -350,6 +350,8 @@ class AccountService:
             "name": user.name,
             "role": user.role,
             "is_verified": user.is_verified,
+            "is_active": user.is_active,
+            "is_platform_admin": user.is_platform_admin,
             "account_id": str(user.account_id),
             "created_at": user.created_at.isoformat(),
         }

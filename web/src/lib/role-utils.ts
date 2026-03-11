@@ -10,6 +10,10 @@ export function isAtLeast(userRole: Role, requiredRole: Role): boolean {
   return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[requiredRole];
 }
 
+export function isPlatformAdmin(user: { is_platform_admin?: boolean } | null): boolean {
+  return user?.is_platform_admin === true;
+}
+
 export function canAccessSales(role: Role): boolean {
   return isAtLeast(role, "admin");
 }

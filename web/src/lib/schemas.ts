@@ -71,6 +71,7 @@ export const UserSchema = z.object({
   account_id: z.string(),
   is_verified: z.boolean(),
   is_active: z.boolean(),
+  is_platform_admin: z.boolean().optional().default(false),
   created_at: z.string(),
 });
 
