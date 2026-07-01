@@ -1,6 +1,7 @@
 """Tests for Whatnot GraphQL client."""
 
 import time
+from urllib.parse import urlparse
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -24,11 +25,11 @@ class TestWhatnotClient:
     def test_client_initialization(self):
         client = WhatnotClient(access_token="test_token")
         assert client._access_token == "test_token"
-        assert "api.whatnot.com" in client._base_url
+        assert urlparse(client._base_url).hostname == "api.whatnot.com"
 
     def test_client_staging_url(self):
         client = WhatnotClient(access_token="test_token", staging=True)
-        assert "stage.whatnot.com" in client._base_url
+        assert urlparse(client._base_url).hostname == "stage.whatnot.com"
 
     @patch("services.whatnot.graphql.client.httpx.Client")
     def test_execute_success(self, mock_client_class):
