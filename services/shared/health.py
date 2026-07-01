@@ -29,7 +29,16 @@ def create_health_blueprint(get_db: callable, service_name: str) -> Blueprint:  
             db: Session = get_db()
             db.execute(text("SELECT 1"))
             return jsonify({"status": "ready", "service": service_name}), 200
-        except Exception as e:
-            return jsonify({"status": "not_ready", "service": service_name, "reason": str(e)}), 503
+        except Exception:
+            return (
+                jsonify(
+                    {
+                        "status": "not_ready",
+                        "service": service_name,
+                        "reason": "dependency unavailable",
+                    }
+                ),
+                503,
+            )
 
     return bp

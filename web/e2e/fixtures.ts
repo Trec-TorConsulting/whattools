@@ -1,4 +1,5 @@
 import { test as base, expect, type Page } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 
 // Seed data credentials (from scripts/seed.py)
 export const OWNER_USER = {
@@ -25,7 +26,7 @@ export async function createTestUser(
     account_name: string;
   }> = {},
 ) {
-  const unique = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const unique = `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
   const user = {
     name: overrides.name ?? `Test User ${unique}`,
     email: overrides.email ?? `test-${unique}@whattools.dev`,
